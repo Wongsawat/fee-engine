@@ -1,0 +1,7 @@
+package com.wpanther.pisp.fee.engine.domain.model;
+
+public enum PaymentType {
+    DOMESTIC, FILE, INTERNATIONAL,
+    DOMESTIC_SCHEDULED, DOMESTIC_STANDING_ORDER,
+    INTERNATIONAL_SCHEDULED, INTERNATIONAL_STANDING_ORDER
+}
