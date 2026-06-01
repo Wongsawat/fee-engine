@@ -95,6 +95,7 @@ class FeeCalculationControllerTest {
                               "instructedAmount": { "amount": "100.00", "currency": "GBP" }
                             }
                             """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Invalid request parameter value"));
     }
 }

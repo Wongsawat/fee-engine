@@ -31,7 +31,6 @@ public class FeeRuleEntity {
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
 
     public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
     public String getPaymentType() { return paymentType; }
     public void setPaymentType(String v) { this.paymentType = v; }
     public String getScheme() { return scheme; }
