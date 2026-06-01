@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: fee-engine
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/fee_engine}
+    username: ${DB_USERNAME:fee_engine}
+    password: ${DB_PASSWORD:fee_engine}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
