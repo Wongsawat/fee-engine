@@ -1,0 +1,60 @@
+package com.wpanther.pisp.fee.engine.drools;
+
+import com.wpanther.pisp.fee.engine.domain.model.*;
+import com.wpanther.pisp.fee.engine.support.DroolsTestSupport;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class PercentageFeeRuleTest extends DroolsTestSupport {
+
+    @Test
+    void percentageFeeCalculatesCorrectAmount() {
+        FeeRequest request = new FeeRequest(
+                PaymentType.DOMESTIC, PaymentScheme.CHAPS, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("500.00"), "GBP"),
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
+
+        FeeRule rule = new FeeRule("CHARGEType002", ChargeBearer.BorneByDebtor, FeeType.PERCENTAGE,
+                null, new BigDecimal("0.002"), List.of(), "GBP");
+
+        List<Charge> charges = fireRules(request, List.of(rule));
+
+        assertThat(charges).hasSize(1);
+        assertThat(charges.get(0).amount().amount()).isEqualByComparingTo("1.00");
+    }
+
+    @Test
+    void percentageFeeRoundsHalfUp() {
+        FeeRequest request = new FeeRequest(
+                PaymentType.DOMESTIC, PaymentScheme.CHAPS, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("123.45"), "GBP"),
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
+
+        FeeRule rule = new FeeRule("CHARGEType002", ChargeBearer.BorneByDebtor, FeeType.PERCENTAGE,
+                null, new BigDecimal("0.002"), List.of(), "GBP");
+
+        List<Charge> charges = fireRules(request, List.of(rule));
+
+        assertThat(charges.get(0).amount().amount()).isEqualByComparingTo("0.25");
+    }
+
+    @Test
+    void percentageFeeUsesCorrectScaleForThreeDecimalCurrency() {
+        FeeRequest request = new FeeRequest(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("100.000"), "KWD"),
+                new AccountRef("IBAN", "KW81CBKU0000000000001234560101"), null);
+
+        FeeRule rule = new FeeRule("CHARGEType002", ChargeBearer.BorneByDebtor, FeeType.PERCENTAGE,
+                null, new BigDecimal("0.002"), List.of(), "KWD");
+
+        List<Charge> charges = fireRules(request, List.of(rule));
+
+        assertThat(charges.get(0).amount().amount().scale()).isEqualTo(3);
+        assertThat(charges.get(0).amount().amount()).isEqualByComparingTo("0.200");
+    }
+}

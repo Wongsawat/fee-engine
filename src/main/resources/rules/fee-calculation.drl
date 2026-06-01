@@ -1,0 +1,100 @@
+package rules;
+
+import com.wpanther.pisp.fee.engine.domain.model.FeeRequest;
+import com.wpanther.pisp.fee.engine.domain.model.FeeRule;
+import com.wpanther.pisp.fee.engine.domain.model.FeeType;
+import com.wpanther.pisp.fee.engine.domain.model.ChargeBearer;
+import com.wpanther.pisp.fee.engine.domain.model.Charge;
+import com.wpanther.pisp.fee.engine.domain.model.InstructedAmount;
+import com.wpanther.pisp.fee.engine.domain.model.AccountRef;
+import com.wpanther.pisp.fee.engine.domain.model.Tier;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+global java.util.List charges;
+
+rule "Apply flat fee - BorneByDebtor"
+    salience 30
+    no-loop
+when
+    $r    : FeeRequest(getDebtorAccountOrNull() != null)
+    $rule : FeeRule(feeType == FeeType.FLAT, chargeBearer == ChargeBearer.BorneByDebtor)
+then
+    charges.add(new Charge(ChargeBearer.BorneByDebtor, $rule.getChargeType(),
+        new InstructedAmount($rule.getFlatAmount().orElseThrow(), $rule.getCurrency()),
+        $r.getDebtorAccountOrNull()));
+end
+
+rule "Apply flat fee - BorneByCreditor"
+    salience 30
+    no-loop
+when
+    $r    : FeeRequest(getCreditorAccountOrNull() != null)
+    $rule : FeeRule(feeType == FeeType.FLAT, chargeBearer == ChargeBearer.BorneByCreditor)
+then
+    charges.add(new Charge(ChargeBearer.BorneByCreditor, $rule.getChargeType(),
+        new InstructedAmount($rule.getFlatAmount().orElseThrow(), $rule.getCurrency()),
+        $r.getCreditorAccountOrNull()));
+end
+
+rule "Apply percentage fee - BorneByDebtor"
+    salience 20
+    no-loop
+when
+    $r    : FeeRequest(getDebtorAccountOrNull() != null)
+    $rule : FeeRule(feeType == FeeType.PERCENTAGE, chargeBearer == ChargeBearer.BorneByDebtor)
+then
+    int scale = java.util.Currency.getInstance($r.getInstructedAmount().currency()).getDefaultFractionDigits();
+    BigDecimal fee = $r.getInstructedAmount().amount()
+                       .multiply($rule.getPercentage().orElseThrow())
+                       .setScale(Math.max(scale, 0), RoundingMode.HALF_UP);
+    charges.add(new Charge(ChargeBearer.BorneByDebtor, $rule.getChargeType(),
+        new InstructedAmount(fee, $r.getInstructedAmount().currency()),
+        $r.getDebtorAccountOrNull()));
+end
+
+rule "Apply percentage fee - BorneByCreditor"
+    salience 20
+    no-loop
+when
+    $r    : FeeRequest(getCreditorAccountOrNull() != null)
+    $rule : FeeRule(feeType == FeeType.PERCENTAGE, chargeBearer == ChargeBearer.BorneByCreditor)
+then
+    int scale = java.util.Currency.getInstance($r.getInstructedAmount().currency()).getDefaultFractionDigits();
+    BigDecimal fee = $r.getInstructedAmount().amount()
+                       .multiply($rule.getPercentage().orElseThrow())
+                       .setScale(Math.max(scale, 0), RoundingMode.HALF_UP);
+    charges.add(new Charge(ChargeBearer.BorneByCreditor, $rule.getChargeType(),
+        new InstructedAmount(fee, $r.getInstructedAmount().currency()),
+        $r.getCreditorAccountOrNull()));
+end
+
+rule "Apply tiered fee - BorneByDebtor"
+    salience 10
+    no-loop
+when
+    $r    : FeeRequest(getDebtorAccountOrNull() != null)
+    $rule : FeeRule(feeType == FeeType.TIERED, chargeBearer == ChargeBearer.BorneByDebtor)
+    $tier : Tier(getMin().compareTo($r.getInstructedAmount().amount()) <= 0,
+                 getMax().compareTo($r.getInstructedAmount().amount()) > 0)
+            from $rule.getTiers()
+then
+    charges.add(new Charge(ChargeBearer.BorneByDebtor, $rule.getChargeType(),
+        new InstructedAmount($tier.getAmount(), $rule.getCurrency()),
+        $r.getDebtorAccountOrNull()));
+end
+
+rule "Apply tiered fee - BorneByCreditor"
+    salience 10
+    no-loop
+when
+    $r    : FeeRequest(getCreditorAccountOrNull() != null)
+    $rule : FeeRule(feeType == FeeType.TIERED, chargeBearer == ChargeBearer.BorneByCreditor)
+    $tier : Tier(getMin().compareTo($r.getInstructedAmount().amount()) <= 0,
+                 getMax().compareTo($r.getInstructedAmount().amount()) > 0)
+            from $rule.getTiers()
+then
+    charges.add(new Charge(ChargeBearer.BorneByCreditor, $rule.getChargeType(),
+        new InstructedAmount($tier.getAmount(), $rule.getCurrency()),
+        $r.getCreditorAccountOrNull()));
+end
