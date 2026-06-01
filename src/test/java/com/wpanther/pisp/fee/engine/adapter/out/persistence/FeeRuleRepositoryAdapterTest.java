@@ -116,6 +116,27 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
     }
 
     @Test
+    void throwsWhenTierFieldIsNull() throws Exception {
+        FeeRuleEntity entity = new FeeRuleEntity();
+        entity.setPaymentType("DOMESTIC");
+        entity.setScheme("FPS");
+        entity.setChargeBearer("BorneByDebtor");
+        entity.setChargeType("CHARGEType003");
+        entity.setFeeType("TIERED");
+        entity.setTiers(MAPPER.readTree("[{\"min\":0,\"max\":1000}]")); // missing "amount"
+        entity.setCurrency("GBP");
+        entity.setActive(true);
+        entity.setCreatedAt(Instant.now());
+        entity.setUpdatedAt(Instant.now());
+        jpaRepo.save(entity);
+
+        assertThatThrownBy(() -> adapter.findMatching(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty()))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("CHARGEType003");
+    }
+
+    @Test
     void throwsWhenTierHasNonPositiveAmount() throws Exception {
         FeeRuleEntity entity = new FeeRuleEntity();
         entity.setPaymentType("DOMESTIC");

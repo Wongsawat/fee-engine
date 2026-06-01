@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -103,6 +104,41 @@ class CalculateFeesServiceTest {
         assertThat(result.get(0).chargeType()).isEqualTo("CHARGEType001");
         assertThat(result.get(0).chargeBearer()).isEqualTo(ChargeBearer.BorneByDebtor);
         assertThat(result.get(0).amount().amount()).isEqualByComparingTo("1.50");
+    }
+
+    @Test
+    void throwsForUnknownCurrencyCode() {
+        assertThatThrownBy(() -> service.calculate(new CalculateFeesUseCase.Command(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("100.00"), "XYZ"),
+                Optional.of(new AccountRef("SortCodeAccountNumber", "123")),
+                Optional.empty())))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("XYZ");
+    }
+
+    @Test
+    void sharedBearerRetainsBothChargesWhenSameChargeTypeHasDifferentBearer() {
+        FeeRule debtorRule = new FeeRule("TRANSFER_FEE", ChargeBearer.BorneByDebtor, FeeType.FLAT,
+                new BigDecimal("1.50"), null, List.of(), "GBP");
+        FeeRule creditorRule = new FeeRule("TRANSFER_FEE", ChargeBearer.BorneByCreditor, FeeType.FLAT,
+                new BigDecimal("0.50"), null, List.of(), "GBP");
+        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByDebtor), any(), any()))
+                .thenReturn(List.of(debtorRule));
+        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByCreditor), any(), any()))
+                .thenReturn(List.of(creditorRule));
+
+        List<Charge> result = service.calculate(new CalculateFeesUseCase.Command(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.Shared,
+                new InstructedAmount(new BigDecimal("100.00"), "GBP"),
+                Optional.of(new AccountRef("SortCodeAccountNumber", "DEBTOR_ID")),
+                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID"))));
+
+        assertThat(result).hasSize(2);
+        assertThat(result).anyMatch(c -> c.chargeBearer() == ChargeBearer.BorneByDebtor
+                && c.chargeType().equals("TRANSFER_FEE"));
+        assertThat(result).anyMatch(c -> c.chargeBearer() == ChargeBearer.BorneByCreditor
+                && c.chargeType().equals("TRANSFER_FEE"));
     }
 
     @Test

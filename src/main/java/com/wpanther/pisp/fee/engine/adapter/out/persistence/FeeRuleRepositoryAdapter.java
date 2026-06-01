@@ -80,6 +80,7 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
     }
 
     private BigDecimal toBigDecimal(Object value) {
+        if (value == null) throw new IllegalArgumentException("tier field value must not be null");
         if (value instanceof Number n) return new BigDecimal(n.toString());
         return new BigDecimal(value.toString());
     }

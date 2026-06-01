@@ -26,8 +26,14 @@ public class CalculateFeesService implements CalculateFeesUseCase {
     public List<Charge> calculate(Command command) {
         if (command.chargeBearer() == ChargeBearer.FollowingServiceLevel) return List.of();
 
+        String currency = command.instructedAmount().currency();
+        try {
+            java.util.Currency.getInstance(currency);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown currency code: " + currency);
+        }
+
         if (command.chargeBearer() == ChargeBearer.Shared) {
-            String currency = command.instructedAmount().currency();
             List<FeeRule> debtorRules = feeRuleRepository.findMatching(
                     command.paymentType(), command.scheme(), ChargeBearer.BorneByDebtor,
                     currency, command.debtorAccount().map(AccountRef::identification));
@@ -46,7 +52,7 @@ public class CalculateFeesService implements CalculateFeesUseCase {
 
         List<FeeRule> rules = feeRuleRepository.findMatching(
                 command.paymentType(), command.scheme(), command.chargeBearer(),
-                command.instructedAmount().currency(), accountId);
+                currency, accountId);
 
         if (rules.isEmpty()) return List.of();
         return fireSession(command, rules);
@@ -67,7 +73,7 @@ public class CalculateFeesService implements CalculateFeesUseCase {
             rules.forEach(session::insert);
             session.fireAllRules();
             var seen = new java.util.LinkedHashMap<String, Charge>();
-            charges.forEach(c -> seen.putIfAbsent(c.chargeType(), c));
+            charges.forEach(c -> seen.putIfAbsent(c.chargeBearer().name() + ':' + c.chargeType(), c));
             return List.copyOf(seen.values());
         } finally {
             session.dispose();
