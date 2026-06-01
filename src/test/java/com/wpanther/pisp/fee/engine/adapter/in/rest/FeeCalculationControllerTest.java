@@ -1,0 +1,85 @@
+package com.wpanther.pisp.fee.engine.adapter.in.rest;
+
+import com.wpanther.pisp.fee.engine.application.port.in.CalculateFeesUseCase;
+import com.wpanther.pisp.fee.engine.domain.model.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(FeeCalculationController.class)
+class FeeCalculationControllerTest {
+
+    @Autowired MockMvc mockMvc;
+    @MockitoBean CalculateFeesUseCase calculateFeesUseCase;
+
+    @Test
+    void returnsChargesOnValidRequest() throws Exception {
+        when(calculateFeesUseCase.calculate(any())).thenReturn(List.of(
+                new Charge(ChargeBearer.BorneByDebtor, "CHARGEType001",
+                        new InstructedAmount(new BigDecimal("1.50"), "GBP"),
+                        new AccountRef("SortCodeAccountNumber", "12345678901234"))));
+
+        mockMvc.perform(post("/fee-calculations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "BorneByDebtor",
+                              "instructedAmount": { "amount": "100.00", "currency": "GBP" },
+                              "debtorAccount": { "schemeName": "SortCodeAccountNumber",
+                                                 "identification": "12345678901234" }
+                            }
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.charges[0].chargeBearer").value("BorneByDebtor"))
+                .andExpect(jsonPath("$.charges[0].type").value("CHARGEType001"))
+                .andExpect(jsonPath("$.charges[0].amount.amount").value("1.50"))
+                .andExpect(jsonPath("$.charges[0].amount.currency").value("GBP"))
+                .andExpect(jsonPath("$.charges[0].chargingParty.identification")
+                        .value("12345678901234"));
+    }
+
+    @Test
+    void returnsEmptyChargesWhenNoRulesMatch() throws Exception {
+        when(calculateFeesUseCase.calculate(any())).thenReturn(List.of());
+
+        mockMvc.perform(post("/fee-calculations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "BorneByDebtor",
+                              "instructedAmount": { "amount": "100.00", "currency": "GBP" }
+                            }
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.charges").isEmpty());
+    }
+
+    @Test
+    void returns400WhenPaymentTypeIsMissing() throws Exception {
+        mockMvc.perform(post("/fee-calculations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "scheme": "FPS",
+                              "chargeBearer": "DEBT",
+                              "instructedAmount": { "amount": "100.00", "currency": "GBP" }
+                            }
+                            """))
+                .andExpect(status().isBadRequest());
+    }
+}
