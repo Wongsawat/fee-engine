@@ -76,7 +76,22 @@ class FeeCalculationControllerTest {
                         .content("""
                             {
                               "scheme": "FPS",
-                              "chargeBearer": "DEBT",
+                              "chargeBearer": "BorneByDebtor",
+                              "instructedAmount": { "amount": "100.00", "currency": "GBP" }
+                            }
+                            """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void returns400WhenChargeBearerIsInvalid() throws Exception {
+        mockMvc.perform(post("/fee-calculations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "INVALID_BEARER",
                               "instructedAmount": { "amount": "100.00", "currency": "GBP" }
                             }
                             """))

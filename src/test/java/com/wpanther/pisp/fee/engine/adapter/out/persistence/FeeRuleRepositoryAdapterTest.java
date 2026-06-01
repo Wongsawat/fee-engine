@@ -15,7 +15,6 @@ import org.springframework.context.annotation.Import;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -98,7 +97,6 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
     @Test
     void throwsWhenTierHasMinGreaterThanMax() throws Exception {
         FeeRuleEntity entity = new FeeRuleEntity();
-        entity.setId(UUID.randomUUID());
         entity.setPaymentType("DOMESTIC");
         entity.setScheme("FPS");
         entity.setChargeBearer("BorneByDebtor");
@@ -120,7 +118,6 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
     @Test
     void throwsWhenTierHasNonPositiveAmount() throws Exception {
         FeeRuleEntity entity = new FeeRuleEntity();
-        entity.setId(UUID.randomUUID());
         entity.setPaymentType("DOMESTIC");
         entity.setScheme("FPS");
         entity.setChargeBearer("BorneByDebtor");

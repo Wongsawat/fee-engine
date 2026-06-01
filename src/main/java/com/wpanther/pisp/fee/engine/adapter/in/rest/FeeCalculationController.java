@@ -43,8 +43,10 @@ public class FeeCalculationController {
                         c.chargeType(),
                         new FeeCalculationResponse.AmountDto(
                                 c.amount().amount().toPlainString(), c.amount().currency()),
-                        new FeeCalculationResponse.AccountDto(
-                                c.chargingParty().schemeName(), c.chargingParty().identification())
+                        c.chargingParty() != null
+                                ? new FeeCalculationResponse.AccountDto(
+                                        c.chargingParty().schemeName(), c.chargingParty().identification())
+                                : null
                 )).toList());
 
         return ResponseEntity.ok(response);

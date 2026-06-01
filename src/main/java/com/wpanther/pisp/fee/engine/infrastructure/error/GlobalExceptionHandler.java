@@ -19,7 +19,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
         var detail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-        detail.setDetail(ex.getMessage());
+        detail.setDetail("Invalid request parameter value");
+        return detail;
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ProblemDetail handleIllegalState(IllegalStateException ex) {
+        var detail = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+        detail.setDetail("Fee calculation failed due to invalid rule configuration");
         return detail;
     }
 }

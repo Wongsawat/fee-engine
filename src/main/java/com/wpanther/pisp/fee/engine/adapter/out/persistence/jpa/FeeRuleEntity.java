@@ -12,7 +12,9 @@ import java.util.UUID;
 @Table(name = "fee_rules")
 public class FeeRuleEntity {
 
-    @Id private UUID id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
     @Column(name = "payment_type", nullable = false) private String paymentType;
     @Column(name = "scheme", nullable = false) private String scheme;
     @Column(name = "charge_bearer", nullable = false) private String chargeBearer;

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.pisp.fee.engine.adapter.out.persistence.jpa.FeeRuleEntity;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
 
 public class FeeRuleEntityFixtures {
 
@@ -13,7 +12,6 @@ public class FeeRuleEntityFixtures {
     public static FeeRuleEntity flatFeeRule(String paymentType, String scheme,
                                              String chargeBearer, String accountId) {
         var e = new FeeRuleEntity();
-        e.setId(UUID.randomUUID());
         e.setPaymentType(paymentType);
         e.setScheme(scheme);
         e.setChargeBearer(chargeBearer);
@@ -31,7 +29,6 @@ public class FeeRuleEntityFixtures {
     public static FeeRuleEntity percentageFeeRule(String paymentType, String scheme,
                                                    String chargeBearer) {
         var e = new FeeRuleEntity();
-        e.setId(UUID.randomUUID());
         e.setPaymentType(paymentType);
         e.setScheme(scheme);
         e.setChargeBearer(chargeBearer);
@@ -49,7 +46,6 @@ public class FeeRuleEntityFixtures {
     public static FeeRuleEntity tieredFeeRule(String paymentType, String scheme,
                                                String chargeBearer) throws Exception {
         var e = new FeeRuleEntity();
-        e.setId(UUID.randomUUID());
         e.setPaymentType(paymentType);
         e.setScheme(scheme);
         e.setChargeBearer(chargeBearer);
