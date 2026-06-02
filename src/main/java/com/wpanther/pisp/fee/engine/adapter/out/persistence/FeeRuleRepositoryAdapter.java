@@ -1,12 +1,18 @@
 package com.wpanther.pisp.fee.engine.adapter.out.persistence;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.pisp.fee.engine.adapter.out.persistence.jpa.FeeRuleEntity;
 import com.wpanther.pisp.fee.engine.adapter.out.persistence.jpa.FeeRuleJpaRepository;
+import com.wpanther.pisp.fee.engine.application.port.out.FeeRuleDetails;
 import com.wpanther.pisp.fee.engine.application.port.out.FeeRuleRepository;
+import com.wpanther.pisp.fee.engine.domain.exception.FeeRuleNotFoundException;
 import com.wpanther.pisp.fee.engine.domain.model.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -42,6 +48,43 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
                 .toList();
     }
 
+    @Override
+    public FeeRuleDetails save(FeeRuleDetails details) {
+        FeeRuleEntity entity;
+        if (details.id() != null) {
+            entity = jpaRepo.findById(details.id())
+                    .orElseThrow(() -> new FeeRuleNotFoundException(details.id()));
+        } else {
+            entity = new FeeRuleEntity();
+        }
+        entity.setPaymentType(details.paymentType());
+        entity.setScheme(details.scheme());
+        entity.setChargeBearer(details.chargeBearer());
+        entity.setAccountIdentification(details.accountIdentification());
+        entity.setChargeType(details.chargeType());
+        entity.setFeeType(details.feeType());
+        entity.setFlatAmount(details.flatAmount());
+        entity.setPercentage(details.percentage());
+        entity.setTiers(toJsonNode(details.tiers()));
+        entity.setCurrency(details.currency());
+        entity.setActive(details.active());
+        return toDetails(jpaRepo.save(entity));
+    }
+
+    @Override
+    public Optional<FeeRuleDetails> findById(UUID id) {
+        return jpaRepo.findById(id).map(this::toDetails);
+    }
+
+    @Override
+    public Page<FeeRuleDetails> findByFilters(String paymentType, String scheme, String chargeBearer,
+                                              String feeType, String currency, String accountIdentification,
+                                              Boolean active, Pageable pageable) {
+        return jpaRepo.findByFilters(paymentType, scheme, chargeBearer, feeType,
+                currency, accountIdentification, active, pageable)
+                .map(this::toDetails);
+    }
+
     private FeeRule toDomain(FeeRuleEntity e) {
         List<Tier> tiers = List.of();
         if (e.getTiers() != null) {
@@ -64,6 +107,33 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
                 FeeType.valueOf(e.getFeeType()),
                 e.getFlatAmount(), e.getPercentage(),
                 tiers, e.getCurrency());
+    }
+
+    private FeeRuleDetails toDetails(FeeRuleEntity e) {
+        List<FeeRuleDetails.TierInfo> tiers = null;
+        if (e.getTiers() != null) {
+            List<Map<String, Object>> raw = objectMapper.convertValue(
+                    e.getTiers(), new TypeReference<>() {});
+            tiers = raw.stream().map(m -> new FeeRuleDetails.TierInfo(
+                    toBigDecimal(m.get("min")),
+                    toBigDecimal(m.get("max")),
+                    toBigDecimal(m.get("amount"))
+            )).toList();
+        }
+        return new FeeRuleDetails(
+                e.getId(), e.getPaymentType(), e.getScheme(), e.getChargeBearer(),
+                e.getAccountIdentification(), e.getChargeType(), e.getFeeType(),
+                e.getFlatAmount(), e.getPercentage(), tiers, e.getCurrency(),
+                e.isActive(), e.getVersion(),
+                e.getCreatedAt(), e.getCreatedBy(), e.getUpdatedAt(), e.getUpdatedBy());
+    }
+
+    private JsonNode toJsonNode(List<FeeRuleDetails.TierInfo> tiers) {
+        if (tiers == null) return null;
+        var list = tiers.stream().map(t ->
+                Map.of("min", (Object) t.min(), "max", t.max(), "amount", t.amount())
+        ).toList();
+        return objectMapper.valueToTree(list);
     }
 
     private void validateTiers(List<Tier> tiers, String chargeType) {

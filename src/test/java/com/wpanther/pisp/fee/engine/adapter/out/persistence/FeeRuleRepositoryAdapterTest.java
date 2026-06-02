@@ -2,6 +2,8 @@ package com.wpanther.pisp.fee.engine.adapter.out.persistence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.pisp.fee.engine.adapter.out.persistence.jpa.FeeRuleEntity;
+import com.wpanther.pisp.fee.engine.application.port.out.FeeRuleDetails;
+import com.wpanther.pisp.fee.engine.domain.exception.FeeRuleNotFoundException;
 import com.wpanther.pisp.fee.engine.domain.model.*;
 import com.wpanther.pisp.fee.engine.infrastructure.security.AuditorAwareImpl;
 import com.wpanther.pisp.fee.engine.support.FeeRuleEntityFixtures;
@@ -18,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -225,5 +228,56 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         stale.setVersion(0);
         assertThatThrownBy(() -> jpaRepo.saveAndFlush(stale))
                 .isInstanceOf(org.springframework.orm.ObjectOptimisticLockingFailureException.class);
+    }
+
+    @Test
+    void savesAndRetrievesFeeRule() {
+        var details = new FeeRuleDetails(
+                null, "DOMESTIC", "FPS", "BorneByDebtor", null,
+                "CHARGEType001", "FLAT", new BigDecimal("2.50"), null,
+                null, "GBP", true, 0,
+                null, null, null, null);
+
+        FeeRuleDetails saved = adapter.save(details);
+
+        assertThat(saved.id()).isNotNull();
+        assertThat(saved.version()).isEqualTo(0);
+        assertThat(saved.createdAt()).isNotNull();
+        assertThat(saved.flatAmount()).isEqualByComparingTo("2.50");
+
+        var found = adapter.findById(saved.id());
+        assertThat(found).isPresent();
+        assertThat(found.get().flatAmount()).isEqualByComparingTo("2.50");
+    }
+
+    @Test
+    void findByFiltersReturnsPaginatedResults() {
+        jpaRepo.saveAndFlush(FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null));
+        jpaRepo.saveAndFlush(FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "BACS", "BorneByDebtor", null));
+        jpaRepo.saveAndFlush(FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null));
+
+        var page = adapter.findByFilters("DOMESTIC", null, null, null, null, null, null,
+                org.springframework.data.domain.PageRequest.of(0, 10));
+
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getContent()).allSatisfy(d ->
+                assertThat(d.paymentType()).isEqualTo("DOMESTIC"));
+    }
+
+    @Test
+    void findByFiltersByAccountIdentification() {
+        jpaRepo.saveAndFlush(FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", "ACC1"));
+        jpaRepo.saveAndFlush(FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null));
+
+        var page = adapter.findByFilters("DOMESTIC", "FPS", "BorneByDebtor", null, "GBP", "ACC1", null,
+                org.springframework.data.domain.PageRequest.of(0, 10));
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent().get(0).accountIdentification()).isEqualTo("ACC1");
+    }
+
+    @Test
+    void findByIdReturnsEmptyWhenNotFound() {
+        assertThat(adapter.findById(UUID.randomUUID())).isEmpty();
     }
 }
