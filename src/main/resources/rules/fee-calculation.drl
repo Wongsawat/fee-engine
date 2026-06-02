@@ -98,3 +98,31 @@ then
         new InstructedAmount($tier.getAmount(), $rule.getCurrency()),
         $r.getCreditorAccountOrNull()));
 end
+
+rule "Apply free fee - BorneByDebtor"
+    salience 5
+    no-loop
+when
+    $r    : FeeRequest(getDebtorAccountOrNull() != null)
+    $rule : FeeRule(feeType == FeeType.FREE, chargeBearer == ChargeBearer.BorneByDebtor)
+then
+    int scale = java.util.Currency.getInstance($rule.getCurrency()).getDefaultFractionDigits();
+    BigDecimal fee = BigDecimal.ZERO.setScale(Math.max(scale, 0), RoundingMode.UNNECESSARY);
+    charges.add(new Charge(ChargeBearer.BorneByDebtor, $rule.getChargeType(),
+        new InstructedAmount(fee, $rule.getCurrency()),
+        $r.getDebtorAccountOrNull()));
+end
+
+rule "Apply free fee - BorneByCreditor"
+    salience 5
+    no-loop
+when
+    $r    : FeeRequest(getCreditorAccountOrNull() != null)
+    $rule : FeeRule(feeType == FeeType.FREE, chargeBearer == ChargeBearer.BorneByCreditor)
+then
+    int scale = java.util.Currency.getInstance($rule.getCurrency()).getDefaultFractionDigits();
+    BigDecimal fee = BigDecimal.ZERO.setScale(Math.max(scale, 0), RoundingMode.UNNECESSARY);
+    charges.add(new Charge(ChargeBearer.BorneByCreditor, $rule.getChargeType(),
+        new InstructedAmount(fee, $rule.getCurrency()),
+        $r.getCreditorAccountOrNull()));
+end
