@@ -70,6 +70,33 @@ class FeeCalculationControllerTest {
     }
 
     @Test
+    void returnsFreeChargeWithZeroAmount() throws Exception {
+        when(calculateFeesUseCase.calculate(any())).thenReturn(List.of(
+                new Charge(ChargeBearer.BorneByDebtor, "CHARGEType004",
+                        new InstructedAmount(new BigDecimal("0.00"), "GBP"),
+                        new AccountRef("SortCodeAccountNumber", "12345678901234"))));
+
+        mockMvc.perform(post("/fee-calculations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "BorneByDebtor",
+                              "instructedAmount": { "amount": "100.00", "currency": "GBP" },
+                              "debtorAccount": { "schemeName": "SortCodeAccountNumber",
+                                                 "identification": "12345678901234" }
+                            }
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.charges[0].chargeBearer").value("BorneByDebtor"))
+                .andExpect(jsonPath("$.charges[0].type").value("CHARGEType004"))
+                .andExpect(jsonPath("$.charges[0].amount.amount").value("0.00"))
+                .andExpect(jsonPath("$.charges[0].amount.currency").value("GBP"))
+                .andExpect(jsonPath("$.charges[0].chargingParty.identification").value("12345678901234"));
+    }
+
+    @Test
     void returns400WhenPaymentTypeIsMissing() throws Exception {
         mockMvc.perform(post("/fee-calculations")
                         .contentType(MediaType.APPLICATION_JSON)
