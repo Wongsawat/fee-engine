@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -30,6 +31,7 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
         return feeRuleRepository.save(details);
     }
 
+    @Transactional
     @Override
     public FeeRuleDetails update(UpdateCommand command) {
         FeeRuleDetails existing = feeRuleRepository.findById(command.id())
@@ -60,6 +62,7 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
                 currency, accountIdentification, active, pageable);
     }
 
+    @Transactional
     @Override
     public FeeRuleDetails toggleStatus(UUID id, boolean active, long version) {
         FeeRuleDetails existing = feeRuleRepository.findById(id)

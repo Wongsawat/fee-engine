@@ -4,10 +4,13 @@ import com.wpanther.pisp.fee.engine.adapter.in.rest.admin.dto.*;
 import com.wpanther.pisp.fee.engine.application.port.in.ManageFeeRulesUseCase;
 import com.wpanther.pisp.fee.engine.application.port.out.FeeRuleDetails;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -16,6 +19,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/admin/fee-rules")
+@Validated
 public class FeeRuleAdminController {
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
@@ -39,8 +43,8 @@ public class FeeRuleAdminController {
             @RequestParam(required = false) String currency,
             @RequestParam(required = false) String accountIdentification,
             @RequestParam(required = false) Boolean active,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(200) int size,
             @RequestParam(defaultValue = "createdAt,desc") String sort) {
         String[] parts = sort.split(",", 2);
         String field = parts[0].replaceFirst("^[+-]", "");

@@ -22,7 +22,7 @@ public interface ManageFeeRulesUseCase {
         String paymentType, String scheme, String chargeBearer,
         String accountIdentification, String chargeType, String feeType,
         BigDecimal flatAmount, BigDecimal percentage, List<FeeRuleDetails.TierInfo> tiers,
-        String currency, Long version
+        String currency, long version
     ) {}
 
     FeeRuleDetails create(CreateCommand command);

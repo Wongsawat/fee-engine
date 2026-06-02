@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -36,6 +37,24 @@ class FeeRuleAdminControllerTest {
         return new FeeRuleDetails(RULE_ID, "DOMESTIC", "FPS", "BorneByDebtor", null,
                 "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, "GBP",
                 true, 0, Instant.now(), "system", Instant.now(), "system");
+    }
+
+    @Test
+    void listRules() throws Exception {
+        var page = new org.springframework.data.domain.PageImpl<>(
+                List.of(testDetails()),
+                org.springframework.data.domain.PageRequest.of(0, 20),
+                1L);
+        when(manageFeeRulesUseCase.findAll(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/admin/fee-rules")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client"))
+                                .authorities(() -> "SCOPE_fee-rules:read")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].feeType").value("FLAT"))
+                .andExpect(jsonPath("$.page.totalElements").value(1))
+                .andExpect(jsonPath("$.page.number").value(0));
     }
 
     @Test
