@@ -117,6 +117,7 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         var entity = FeeRuleEntityFixtures.freeRule("DOMESTIC", "FPS", "BorneByDebtor");
         entity.setFlatAmount(new BigDecimal("1.00"));
 
+        // saveAndFlush forces immediate DB flush; save() alone defers the INSERT and the constraint check never fires within the test
         assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
