@@ -61,4 +61,19 @@ public class FeeRuleEntityFixtures {
         e.setUpdatedAt(Instant.now());
         return e;
     }
+
+    public static FeeRuleEntity freeRule(String paymentType, String scheme, String chargeBearer) {
+        var e = new FeeRuleEntity();
+        e.setPaymentType(paymentType);
+        e.setScheme(scheme);
+        e.setChargeBearer(chargeBearer);
+        e.setAccountIdentification(null);
+        e.setChargeType("CHARGEType004");
+        e.setFeeType("FREE");
+        e.setCurrency("GBP");
+        e.setActive(true);
+        e.setCreatedAt(Instant.now());
+        e.setUpdatedAt(Instant.now());
+        return e;
+    }
 }

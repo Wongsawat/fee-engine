@@ -11,7 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -92,6 +94,31 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         List<FeeRule> rules = adapter.findMatching(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty());
         assertThat(rules).isEmpty();
+    }
+
+    @Test
+    void returnsFreeRuleWithNoMonetaryFields() {
+        jpaRepo.save(FeeRuleEntityFixtures.freeRule("DOMESTIC", "FPS", "BorneByDebtor"));
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty());
+
+        assertThat(rules).hasSize(1);
+        FeeRule rule = rules.get(0);
+        assertThat(rule.getFeeType()).isEqualTo(FeeType.FREE);
+        assertThat(rule.getChargeType()).isEqualTo("CHARGEType004");
+        assertThat(rule.getFlatAmount()).isEmpty();
+        assertThat(rule.getPercentage()).isEmpty();
+        assertThat(rule.getTiers()).isEmpty();
+    }
+
+    @Test
+    void rejectsFreeFeeRuleWithFlatAmount() {
+        var entity = FeeRuleEntityFixtures.freeRule("DOMESTIC", "FPS", "BorneByDebtor");
+        entity.setFlatAmount(new BigDecimal("1.00"));
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
