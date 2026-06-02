@@ -117,7 +117,28 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         var entity = FeeRuleEntityFixtures.freeRule("DOMESTIC", "FPS", "BorneByDebtor");
         entity.setFlatAmount(new BigDecimal("1.00"));
 
-        // saveAndFlush forces immediate DB flush; save() alone defers the INSERT and the constraint check never fires within the test
+        // saveAndFlush is required: @DataJpaTest wraps each test in a rolled-back transaction, so
+        // Hibernate never auto-flushes unless a subsequent query forces it. save() alone queues the
+        // INSERT in the first-level cache and it is never sent to Postgres; flush() sends the INSERT
+        // immediately so PostgreSQL evaluates the check constraint before the rollback.
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void rejectsFreeFeeRuleWithPercentage() {
+        var entity = FeeRuleEntityFixtures.freeRule("DOMESTIC", "FPS", "BorneByDebtor");
+        entity.setPercentage(new BigDecimal("0.01"));
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void rejectsFreeFeeRuleWithTiers() throws Exception {
+        var entity = FeeRuleEntityFixtures.freeRule("DOMESTIC", "FPS", "BorneByDebtor");
+        entity.setTiers(MAPPER.readTree("[{\"min\":0,\"max\":1000,\"amount\":0.50}]"));
+
         assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
