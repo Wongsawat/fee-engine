@@ -11,26 +11,6 @@ import java.util.List;
 @Component
 public class FeeRuleDtoMapper {
 
-    public FeeRuleDetails toDetails(CreateFeeRuleRequest request) {
-        return new FeeRuleDetails(
-                null, request.paymentType(), request.scheme(), request.chargeBearer(),
-                request.accountIdentification(), request.chargeType(), request.feeType(),
-                request.flatAmount(), request.percentage(),
-                toTierInfoList(request.tiers()), request.currency(),
-                true, 0, null, null, null, null);
-    }
-
-    public FeeRuleDetails toDetails(UpdateFeeRuleRequest request, java.util.UUID id,
-                                     boolean currentActive, java.time.Instant createdAt,
-                                     String createdBy) {
-        return new FeeRuleDetails(
-                id, request.paymentType(), request.scheme(), request.chargeBearer(),
-                request.accountIdentification(), request.chargeType(), request.feeType(),
-                request.flatAmount(), request.percentage(),
-                toTierInfoList(request.tiers()), request.currency(),
-                currentActive, request.version(), createdAt, createdBy, null, null);
-    }
-
     public FeeRuleResponse toResponse(FeeRuleDetails details) {
         return new FeeRuleResponse(
                 details.id(), details.paymentType(), details.scheme(), details.chargeBearer(),
