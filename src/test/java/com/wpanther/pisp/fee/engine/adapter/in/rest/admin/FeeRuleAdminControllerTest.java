@@ -134,11 +134,8 @@ class FeeRuleAdminControllerTest {
 
     @Test
     void rejectsWriteWithoutWriteScope() throws Exception {
-        when(manageFeeRulesUseCase.create(any())).thenReturn(testDetails());
         mockMvc.perform(post("/admin/fee-rules")
-                        .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client")
-                                .claim("scope", "fee-rules:read"))
-                                .authorities(() -> "SCOPE_fee-rules:read"))
+                        .with(jwt().authorities(() -> "SCOPE_fee-rules:read"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {
