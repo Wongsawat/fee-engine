@@ -4,12 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "fee_rules")
+@EntityListeners(AuditingEntityListener.class)
 public class FeeRuleEntity {
 
     @Id
@@ -27,8 +32,28 @@ public class FeeRuleEntity {
     @Column(columnDefinition = "jsonb") private JsonNode tiers;
     @Column(name = "currency", nullable = false) private String currency;
     @Column(name = "active", nullable = false) private boolean active;
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
+    @CreatedBy
+    @Column(name = "created_by")
+    private String createdBy;
+    @LastModifiedBy
+    @Column(name = "updated_by")
+    private String updatedBy;
     @Column(name = "created_at", nullable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) createdAt = Instant.now();
+        if (updatedAt == null) updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = Instant.now();
+    }
 
     public UUID getId() { return id; }
     public String getPaymentType() { return paymentType; }
@@ -53,6 +78,10 @@ public class FeeRuleEntity {
     public void setCurrency(String v) { this.currency = v; }
     public boolean isActive() { return active; }
     public void setActive(boolean v) { this.active = v; }
+    public long getVersion() { return version; }
+    public void setVersion(long v) { this.version = v; }
+    public String getCreatedBy() { return createdBy; }
+    public String getUpdatedBy() { return updatedBy; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant v) { this.createdAt = v; }
     public Instant getUpdatedAt() { return updatedAt; }

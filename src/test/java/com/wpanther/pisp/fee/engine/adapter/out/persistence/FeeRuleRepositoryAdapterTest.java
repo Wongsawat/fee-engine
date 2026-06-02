@@ -3,6 +3,7 @@ package com.wpanther.pisp.fee.engine.adapter.out.persistence;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.pisp.fee.engine.adapter.out.persistence.jpa.FeeRuleEntity;
 import com.wpanther.pisp.fee.engine.domain.model.*;
+import com.wpanther.pisp.fee.engine.infrastructure.security.AuditorAwareImpl;
 import com.wpanther.pisp.fee.engine.support.FeeRuleEntityFixtures;
 import com.wpanther.pisp.fee.engine.support.PostgresTestSupport;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,13 +23,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
-@Import({FeeRuleRepositoryAdapter.class, JacksonAutoConfiguration.class})
+@Import({FeeRuleRepositoryAdapter.class, JacksonAutoConfiguration.class, AuditorAwareImpl.class})
 class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Autowired FeeRuleRepositoryAdapter adapter;
     @Autowired com.wpanther.pisp.fee.engine.adapter.out.persistence.jpa.FeeRuleJpaRepository jpaRepo;
+    @Autowired jakarta.persistence.EntityManager entityManager;
 
     @BeforeEach
     void clear() { jpaRepo.deleteAll(); }
@@ -204,5 +206,24 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty()))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("amount");
+    }
+
+    @Test
+    void optimisticLockingRejectsStaleUpdate() {
+        var entity = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
+        jpaRepo.saveAndFlush(entity);
+
+        // First update increments version to 1
+        var copy1 = jpaRepo.findById(entity.getId()).orElseThrow();
+        copy1.setFlatAmount(new BigDecimal("5.00"));
+        jpaRepo.saveAndFlush(copy1);
+
+        // Detach to get a stale snapshot, then force stale version
+        var stale = jpaRepo.findById(entity.getId()).orElseThrow();
+        entityManager.detach(stale);
+        stale.setFlatAmount(new BigDecimal("10.00"));
+        stale.setVersion(0);
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(stale))
+                .isInstanceOf(org.springframework.orm.ObjectOptimisticLockingFailureException.class);
     }
 }

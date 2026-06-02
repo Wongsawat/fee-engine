@@ -1,0 +1,14 @@
+target/
+*.class
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.factorypath
+.settings/
+CLAUDE.md
+.claude/
+docs/superpowers

@@ -2,9 +2,11 @@ package com.wpanther.pisp.fee.engine.adapter.in.rest;
 
 import com.wpanther.pisp.fee.engine.application.port.in.CalculateFeesUseCase;
 import com.wpanther.pisp.fee.engine.domain.model.*;
+import com.wpanther.pisp.fee.engine.infrastructure.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -18,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(FeeCalculationController.class)
+@Import(SecurityConfig.class)
 class FeeCalculationControllerTest {
 
     @Autowired MockMvc mockMvc;
