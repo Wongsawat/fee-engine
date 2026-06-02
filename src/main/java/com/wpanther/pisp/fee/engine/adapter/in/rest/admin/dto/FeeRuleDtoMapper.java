@@ -1,6 +1,7 @@
 package com.wpanther.pisp.fee.engine.adapter.in.rest.admin.dto;
 
 import com.wpanther.pisp.fee.engine.adapter.in.rest.dto.FeeCalculationResponse;
+import com.wpanther.pisp.fee.engine.application.port.in.ManageFeeRulesUseCase;
 import com.wpanther.pisp.fee.engine.application.port.out.FeeRuleDetails;
 import com.wpanther.pisp.fee.engine.domain.model.*;
 import org.springframework.stereotype.Component;
@@ -68,6 +69,22 @@ public class FeeRuleDtoMapper {
                 PaymentScheme.valueOf(request.rule().scheme()),
                 ChargeBearer.valueOf(request.rule().chargeBearer()),
                 instructedAmount, debtor, creditor);
+    }
+
+    public ManageFeeRulesUseCase.CreateCommand toCreateCommand(CreateFeeRuleRequest request) {
+        return new ManageFeeRulesUseCase.CreateCommand(
+                request.paymentType(), request.scheme(), request.chargeBearer(),
+                request.accountIdentification(), request.chargeType(), request.feeType(),
+                request.flatAmount(), request.percentage(),
+                toTierInfoList(request.tiers()), request.currency());
+    }
+
+    public ManageFeeRulesUseCase.UpdateCommand toUpdateCommand(UpdateFeeRuleRequest request, java.util.UUID id) {
+        return new ManageFeeRulesUseCase.UpdateCommand(
+                id, request.paymentType(), request.scheme(), request.chargeBearer(),
+                request.accountIdentification(), request.chargeType(), request.feeType(),
+                request.flatAmount(), request.percentage(),
+                toTierInfoList(request.tiers()), request.currency(), request.version());
     }
 
     public List<FeeCalculationResponse.ChargeDto> toChargeDtos(List<Charge> charges) {
