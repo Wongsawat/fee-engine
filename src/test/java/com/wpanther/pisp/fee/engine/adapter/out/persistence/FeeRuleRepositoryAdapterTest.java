@@ -3,7 +3,6 @@ package com.wpanther.pisp.fee.engine.adapter.out.persistence;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.pisp.fee.engine.adapter.out.persistence.jpa.FeeRuleEntity;
 import com.wpanther.pisp.fee.engine.application.port.out.FeeRuleDetails;
-import com.wpanther.pisp.fee.engine.domain.exception.FeeRuleNotFoundException;
 import com.wpanther.pisp.fee.engine.domain.model.*;
 import com.wpanther.pisp.fee.engine.infrastructure.security.AuditorAwareImpl;
 import com.wpanther.pisp.fee.engine.support.FeeRuleEntityFixtures;
