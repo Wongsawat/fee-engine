@@ -6,11 +6,22 @@ Part of the `pisp` platform alongside the [domestic-payments](../domestic-paymen
 
 ## Endpoints
 
-### Public
+### Public (unauthenticated)
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/fee-calculations` | Calculate fees for a payment request |
+
+### Admin (JWT bearer required)
+
+| Method | Path | Required scope | Description |
+|--------|------|---------------|-------------|
+| `GET` | `/admin/fee-rules` | `fee-rules:read` | List rules with filtering and pagination |
+| `GET` | `/admin/fee-rules/{id}` | `fee-rules:read` | Get a single rule by ID |
+| `POST` | `/admin/fee-rules` | `fee-rules:write` | Create a new fee rule |
+| `PUT` | `/admin/fee-rules/{id}` | `fee-rules:write` | Replace a fee rule |
+| `PATCH` | `/admin/fee-rules/{id}/status` | `fee-rules:write` | Toggle a rule's active status |
+| `POST` | `/admin/fee-rules/dry-run` | `fee-rules:write` | Preview charges for a transient rule without persisting |
 
 ### Actuator
 
@@ -27,19 +38,41 @@ Hexagonal (ports + adapters) with `FeeRule` as the aggregate root.
 domain/
   model/             FeeRule, FeeRequest, Charge, Tier, InstructedAmount, AccountRef
                      PaymentType (7 values), PaymentScheme (4), ChargeBearer (4), FeeType (4)
+  exception/         FeeRuleNotFoundException
 application/
-  port/in/           CalculateFeesUseCase (interface + Command record)
-  port/out/          FeeRuleRepository
+  port/in/           CalculateFeesUseCase, ManageFeeRulesUseCase, DryRunFeeCalculationUseCase
+  port/out/          FeeRuleRepository, FeeRuleDetails (shared output record)
   service/           CalculateFeesService — orchestrates lookup, Drools firing, deduplication
+                     ManageFeeRulesService — CRUD + status toggle with optimistic-lock guard
+                     DryRunFeeCalculationService — transient rule preview (no persistence)
 adapter/
   in/rest/           FeeCalculationController — POST /fee-calculations
-                     dto/ — FeeCalculationRequest, FeeCalculationResponse (nested records)
+                     dto/ — FeeCalculationRequest, FeeCalculationResponse
+  in/rest/admin/     FeeRuleAdminController — CRUD + status toggle
+                     DryRunFeeCalculationController — POST /admin/fee-rules/dry-run
+                     dto/ — CreateFeeRuleRequest, UpdateFeeRuleRequest, StatusToggleRequest,
+                             FeeRuleRequest, FeeRuleResponse, FeeRulePageResponse,
+                             DryRunRequest, DryRunResponse, TierDto, FeeRuleDtoMapper
   out/persistence/   FeeRuleRepositoryAdapter — JPA lookup + account override logic
                      jpa/ — FeeRuleEntity, FeeRuleJpaRepository
 infrastructure/
   drools/            KieSessionConfig — stateful Drools session from classpath
   error/             GlobalExceptionHandler — RFC 7807 ProblemDetail responses
+  security/          SecurityConfig — two ordered filter chains; AuditorAwareImpl (JWT sub → createdBy/updatedBy)
+  validation/        FeeRuleRequestValidator, @ValidFeeRule — cross-field fee-type validation
+  config/            JpaAuditingConfig
 ```
+
+## Security
+
+Spring Security is configured with two ordered filter chains:
+
+| Chain | Matcher | Auth |
+|-------|---------|------|
+| `calculationChain` (`@Order(1)`) | `/fee-calculations/**`, `/actuator/**` | None — fully open |
+| `adminChain` (`@Order(2)`) | `/admin/**` | JWT bearer (OAuth2 resource server). GET → `SCOPE_fee-rules:read`; POST/PUT/PATCH → `SCOPE_fee-rules:write` |
+
+Any path not matched by the first two chains is denied by a default `denyAll` chain. Unauthenticated or forbidden requests to `/admin/**` receive an `application/problem+json` response with status 401 or 403.
 
 ## Fee Calculation Flow
 
@@ -153,9 +186,10 @@ Flyway manages the schema. Single table:
 | `chk_flat_amount_positive` | `flat_amount` must be positive when present |
 | `chk_free_no_amount` | `FREE` fee type must have null `flat_amount`, `percentage`, and `tiers` |
 
-### Index
+### Indexes & Unique Constraints
 
 - **`idx_fee_rules_lookup`** — Partial index on `(payment_type, scheme, charge_bearer, currency, account_identification) WHERE active = TRUE`
+- **`uniq_active_fee_rules`** — Unique partial index enforcing at most one active rule per `(payment_type, scheme, charge_bearer, account_identification)` combination. Violation returns HTTP 409 with `"Active fee rule already exists for this combination"`.
 
 ### Migrations
 
@@ -170,9 +204,11 @@ Flyway manages the schema. Single table:
 | Layer | Scope | Tooling |
 |-------|-------|---------|
 | Domain unit | FeeRule, Tier, value objects | JUnit 5 + AssertJ (zero Spring) |
-| Application unit | CalculateFeesService with mocked repository, real Drools session | Mockito |
+| Application unit | CalculateFeesService, ManageFeeRulesService, DryRunFeeCalculationService with mocked repository | Mockito |
 | Persistence slice | FeeRuleRepositoryAdapter — account override, constraint enforcement | `@DataJpaTest` + Testcontainers PostgreSQL |
-| REST slice | FeeCalculationController — validation, error handling | `@WebMvcTest` |
+| REST slice — calculation | FeeCalculationController — validation, error handling | `@WebMvcTest` |
+| REST slice — admin | FeeRuleAdminController, DryRunFeeCalculationController — auth (scopes), CRUD, 404/409 | `@WebMvcTest` + `@Import(SecurityConfig.class)`, `jwt().authorities(...)` |
+| Validator unit | FeeRuleRequestValidator — per-fee-type field rules | Zero Spring context |
 | Drools unit | Fee rules (flat, percentage, tiered, free) — correct charges, rounding, boundary cases | `DroolsTestSupport` + real KIE session |
 
 Coverage targets: 90%+ branch on `domain`, 80%+ on `application`. Enforced via JaCoCo.
@@ -185,7 +221,13 @@ All errors return RFC 7807 `ProblemDetail` (`application/problem+json`).
 |----------|------|--------|
 | Missing required request field | 400 | `Request validation failed` |
 | Invalid parameter value (bad currency, unknown enum) | 400 | `Invalid request parameter value` |
+| Invalid fee rule fields (e.g. FREE with amount) | 400 | `Request validation failed` (via `@ValidFeeRule`) |
 | Corrupt rule configuration (invalid tier bounds, null tier field) | 500 | `Fee calculation failed due to invalid rule configuration` |
+| Rule not found | 404 | `Fee rule {id} not found` |
+| Duplicate active rule for same combination | 409 | `Active fee rule already exists for this combination` |
+| Concurrent update (stale version) | 409 | `Concurrent update detected. Refresh and retry.` |
+| Missing or invalid JWT on `/admin/**` | 401 | `Unauthorized` |
+| Insufficient scope on `/admin/**` | 403 | `Access Denied` |
 
 ## Related
 
