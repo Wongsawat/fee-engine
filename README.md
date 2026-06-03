@@ -4,6 +4,8 @@ Fee calculation engine for the `pisp` payment platform. Determines charges for p
 
 Part of the `pisp` platform alongside the [domestic-payments](../domestic-payments), [file-payments](../file-payments), and [saga-orchestrator](../saga-orchestrator) services.
 
+For detailed sequence and flow diagrams covering fee calculation, admin CRUD, dry-run, security chains, and error handling, see [docs/fee-engine-flow-diagrams.md](docs/fee-engine-flow-diagrams.md).
+
 ## Endpoints
 
 ### Public (unauthenticated)
