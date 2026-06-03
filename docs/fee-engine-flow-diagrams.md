@@ -657,8 +657,8 @@ flowchart TD
     B -->|No/invalid JWT on /admin/**| C[401 Unauthorized]
     B -->|Wrong scope on /admin/**| D[403 Access Denied]
     B -->|Auth OK or /fee-calculations| E{Bean validation}
-    E -->|@Valid fails — missing/wrong field| F[400 Request validation failed]
-    E -->|@ValidFeeRule fails — fee-type mismatch| F
+    E -->|@Valid fails: missing/wrong field| F[400 Request validation failed]
+    E -->|@ValidFeeRule fails: fee-type mismatch| F
     E -->|Valid| G{Business logic}
     G -->|Rule not found| H[404 Fee rule id not found]
     G -->|version mismatch in update/toggle| I[409 Concurrent update detected]
