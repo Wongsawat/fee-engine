@@ -654,18 +654,18 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     A[Inbound request] --> B{Security check}
-    B -->|No/invalid JWT on /admin/**| C[401 Unauthorized]
-    B -->|Wrong scope on /admin/**| D[403 Access Denied]
-    B -->|Auth OK or /fee-calculations| E{Bean validation}
-    E -->|@Valid fails: missing/wrong field| F[400 Request validation failed]
-    E -->|@ValidFeeRule fails: fee-type mismatch| F
-    E -->|Valid| G{Business logic}
-    G -->|Rule not found| H[404 Fee rule id not found]
-    G -->|version mismatch in update/toggle| I[409 Concurrent update detected]
-    G -->|uniq_active_fee_rules on create/activate| J[409 Active fee rule already exists]
-    G -->|Unknown currency code| K[400 Invalid request parameter value]
-    G -->|Corrupt tier data in DB| L[500 Fee calculation failed due to invalid rule configuration]
-    G -->|Success| M[200 / 201]
+    B -- "No/invalid JWT on /admin/**" --> C[401 Unauthorized]
+    B -- "Wrong scope on /admin/**" --> D[403 Access Denied]
+    B -- "Auth OK or /fee-calculations" --> E{Bean validation}
+    E -- "@Valid fails - missing/wrong field" --> F[400 Request validation failed]
+    E -- "@ValidFeeRule fails - fee-type mismatch" --> F
+    E -- "Valid" --> G{Business logic}
+    G -- "Rule not found" --> H[404 Fee rule id not found]
+    G -- "version mismatch in update/toggle" --> I[409 Concurrent update detected]
+    G -- "uniq_active_fee_rules on create/activate" --> J[409 Active fee rule already exists]
+    G -- "Unknown currency code" --> K[400 Invalid request parameter value]
+    G -- "Corrupt tier data in DB" --> L[500 Fee calculation failed due to invalid rule configuration]
+    G -- "Success" --> M["200 / 201"]
 ```
 
 ### Node Details
