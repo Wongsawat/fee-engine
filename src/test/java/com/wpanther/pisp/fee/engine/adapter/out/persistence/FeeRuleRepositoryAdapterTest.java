@@ -279,4 +279,44 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
     void findByIdReturnsEmptyWhenNotFound() {
         assertThat(adapter.findById(UUID.randomUUID())).isEmpty();
     }
+
+    @Test
+    void rejectsCapsOnFlatRule() {
+        var entity = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
+        entity.setMinFee(new BigDecimal("1.00"));
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void rejectsMinFeeGreaterThanMaxFee() {
+        var entity = FeeRuleEntityFixtures.percentageFeeRule("DOMESTIC", "FPS", "BorneByDebtor");
+        entity.setMinFee(new BigDecimal("50.00"));
+        entity.setMaxFee(new BigDecimal("1.00"));
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void rejectsNonPositiveMinFee() {
+        var entity = FeeRuleEntityFixtures.percentageFeeRule("DOMESTIC", "FPS", "BorneByDebtor");
+        entity.setMinFee(BigDecimal.ZERO);
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void acceptsValidCappedPercentageRule() {
+        var entity = FeeRuleEntityFixtures.percentageFeeRule("DOMESTIC", "FPS", "BorneByDebtor");
+        entity.setMinFee(new BigDecimal("1.00"));
+        entity.setMaxFee(new BigDecimal("50.00"));
+        jpaRepo.saveAndFlush(entity);
+
+        var found = jpaRepo.findById(entity.getId()).orElseThrow();
+        assertThat(found.getMinFee()).isEqualByComparingTo("1.00");
+        assertThat(found.getMaxFee()).isEqualByComparingTo("50.00");
+    }
 }

@@ -28,6 +28,8 @@ public class FeeRuleEntity {
     @Column(name = "fee_type", nullable = false) private String feeType;
     @Column(name = "flat_amount") private BigDecimal flatAmount;
     @Column(name = "percentage") private BigDecimal percentage;
+    @Column(name = "min_fee") private BigDecimal minFee;
+    @Column(name = "max_fee") private BigDecimal maxFee;
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb") private JsonNode tiers;
     @Column(name = "currency", nullable = false) private String currency;
@@ -72,6 +74,10 @@ public class FeeRuleEntity {
     public void setFlatAmount(BigDecimal v) { this.flatAmount = v; }
     public BigDecimal getPercentage() { return percentage; }
     public void setPercentage(BigDecimal v) { this.percentage = v; }
+    public BigDecimal getMinFee() { return minFee; }
+    public void setMinFee(BigDecimal v) { this.minFee = v; }
+    public BigDecimal getMaxFee() { return maxFee; }
+    public void setMaxFee(BigDecimal v) { this.maxFee = v; }
     public JsonNode getTiers() { return tiers; }
     public void setTiers(JsonNode v) { this.tiers = v; }
     public String getCurrency() { return currency; }
