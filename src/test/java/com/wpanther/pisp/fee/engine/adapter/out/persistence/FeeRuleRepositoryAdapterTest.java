@@ -433,7 +433,6 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
 
         var inRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
         inRule.setDestinationCountry("IN");
-        inRule.setChargeType("IN_RULE");
         jpaRepo.saveAndFlush(inRule);
 
         List<FeeRule> rules = adapter.findMatching(
@@ -441,7 +440,7 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
                 "GBP", Optional.of("IN"), Optional.empty());
 
         assertThat(rules).hasSize(1);
-        assertThat(rules.get(0).getChargeType()).isEqualTo("IN_RULE");
+        assertThat(rules.get(0).getDestinationCountry()).hasValue("IN");
     }
 
     @Test
@@ -475,12 +474,10 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         // Level 2: country=IN, account=any
         var countryRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
         countryRule.setDestinationCountry("IN");
-        countryRule.setChargeType("COUNTRY_RULE");
         jpaRepo.saveAndFlush(countryRule);
 
         // Level 3: country=any, account=ACC1
         var accountRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", "ACC1");
-        accountRule.setChargeType("ACCOUNT_RULE");
         jpaRepo.saveAndFlush(accountRule);
 
         List<FeeRule> rules = adapter.findMatching(
@@ -488,7 +485,7 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
                 "GBP", Optional.of("IN"), Optional.of("ACC1"));
 
         assertThat(rules).hasSize(1);
-        assertThat(rules.get(0).getChargeType()).isEqualTo("COUNTRY_RULE");
+        assertThat(rules.get(0).getDestinationCountry()).hasValue("IN");
     }
 
     @Test
@@ -496,10 +493,9 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         // Level 1: country=IN, account=ACC1
         var l1 = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", "ACC1");
         l1.setDestinationCountry("IN");
-        l1.setChargeType("LEVEL1");
         jpaRepo.saveAndFlush(l1);
 
-        // Level 2: country=IN, account=any
+        // Level 2: country=IN, account=any — different chargeType so no unique-constraint conflict
         var l2 = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
         l2.setDestinationCountry("IN");
         l2.setChargeType("LEVEL2");
@@ -509,18 +505,20 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
                 PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
                 "GBP", Optional.of("IN"), Optional.of("ACC1"));
 
-        assertThat(rules).hasSize(1);
-        assertThat(rules.get(0).getChargeType()).isEqualTo("LEVEL1");
+        // Both charge types are independent — each picks its own best cascade level
+        assertThat(rules).hasSize(2);
+        assertThat(rules).anyMatch(r -> r.getChargeType().equals("CHARGEType001")
+                && "IN".equals(r.getDestinationCountry().orElse(null)));
+        assertThat(rules).anyMatch(r -> r.getChargeType().equals("LEVEL2"));
     }
 
     @Test
     void accountOnlyRuleWinsOverAnyAccountRule() {
         // Level 3: country=any, account=ACC1
         var accountRule = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", "ACC1");
-        accountRule.setChargeType("ACCOUNT_RULE");
         jpaRepo.saveAndFlush(accountRule);
 
-        // Level 4: country=any, account=any
+        // Level 4: country=any, account=any — different chargeType to avoid unique-constraint conflict
         var anyAccountRule = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
         anyAccountRule.setChargeType("ANY_ACCOUNT_RULE");
         jpaRepo.saveAndFlush(anyAccountRule);
@@ -529,8 +527,10 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 "GBP", Optional.empty(), Optional.of("ACC1"));
 
-        assertThat(rules).hasSize(1);
-        assertThat(rules.get(0).getChargeType()).isEqualTo("ACCOUNT_RULE");
+        // Both charge types are independent — CHARGEType001 picks the account-specific rule
+        assertThat(rules).hasSize(2);
+        assertThat(rules).anyMatch(r -> r.getChargeType().equals("CHARGEType001"));
+        assertThat(rules).anyMatch(r -> r.getChargeType().equals("ANY_ACCOUNT_RULE"));
     }
 
     @Test
@@ -575,5 +575,89 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
 
         var found = jpaRepo.findById(entity.getId()).orElseThrow();
         assertThat(found.getPriority()).isEqualTo(42);
+    }
+
+    @Test
+    void twoActiveChargeTypesAtSameCascadeLevelAreBothReturnedIndependently() {
+        var transferFee = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        transferFee.setChargeType("TRANSFER_FEE");
+        transferFee.setPriority(0);
+        jpaRepo.saveAndFlush(transferFee);
+
+        var standardFee = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        standardFee.setChargeType("STANDARD_FEE");
+        standardFee.setPriority(5);
+        jpaRepo.saveAndFlush(standardFee);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.empty());
+
+        assertThat(rules).hasSize(2);
+        assertThat(rules).anyMatch(r -> r.getChargeType().equals("TRANSFER_FEE"));
+        assertThat(rules).anyMatch(r -> r.getChargeType().equals("STANDARD_FEE"));
+    }
+
+    @Test
+    void higherPriorityLowerSpecificityRuleBeatsLowerPriorityHigherSpecificity() {
+        var anyRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        anyRule.setChargeType("TRANSFER_FEE");
+        anyRule.setPriority(100);
+        jpaRepo.saveAndFlush(anyRule);
+
+        var countryRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        countryRule.setChargeType("TRANSFER_FEE");
+        countryRule.setDestinationCountry("IN");
+        countryRule.setPriority(0);
+        jpaRepo.saveAndFlush(countryRule);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.of("IN"), Optional.empty());
+
+        assertThat(rules).hasSize(1);
+        assertThat(rules.get(0).getDestinationCountry()).isEmpty();
+        assertThat(rules.get(0).getPriority()).isEqualTo(100);
+    }
+
+    @Test
+    void equalPriorityFallsBackToCascadeLevel() {
+        var anyRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        anyRule.setChargeType("TRANSFER_FEE");
+        anyRule.setPriority(0);
+        jpaRepo.saveAndFlush(anyRule);
+
+        var countryRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        countryRule.setChargeType("TRANSFER_FEE");
+        countryRule.setDestinationCountry("IN");
+        countryRule.setPriority(0);
+        jpaRepo.saveAndFlush(countryRule);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.of("IN"), Optional.empty());
+
+        assertThat(rules).hasSize(1);
+        assertThat(rules.get(0).getDestinationCountry()).hasValue("IN");
+    }
+
+    @Test
+    void differentChargeTypesAtDifferentCascadeLevelsAreBothReturned() {
+        var ourFee = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        ourFee.setChargeType("OUR_FEE");
+        ourFee.setDestinationCountry("IN");
+        jpaRepo.saveAndFlush(ourFee);
+
+        var agentFee = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        agentFee.setChargeType("AGENT_FEE");
+        jpaRepo.saveAndFlush(agentFee);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.of("IN"), Optional.empty());
+
+        assertThat(rules).hasSize(2);
+        assertThat(rules).anyMatch(r -> r.getChargeType().equals("OUR_FEE"));
+        assertThat(rules).anyMatch(r -> r.getChargeType().equals("AGENT_FEE"));
     }
 }

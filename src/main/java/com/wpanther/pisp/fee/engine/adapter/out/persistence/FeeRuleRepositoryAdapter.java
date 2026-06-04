@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
@@ -38,25 +39,39 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
         String country = destinationCountry.orElse(null);
         String account = accountIdentification.orElse(null);
 
-        List<List<FeeRuleEntity>> levels = new ArrayList<>();
-        if (country != null && account != null) levels.add(filterEntities(all, country, account));
-        if (country != null)                    levels.add(filterEntities(all, country, null));
-        if (account != null)                    levels.add(filterEntities(all, null, account));
-        levels.add(filterEntities(all, null, null));
+        List<FeeRuleEntity> candidates = all.stream()
+                .filter(e -> {
+                    boolean countryOk = country == null
+                            ? e.getDestinationCountry() == null
+                            : (e.getDestinationCountry() == null
+                               || country.equals(e.getDestinationCountry()));
+                    boolean accountOk = account == null
+                            ? e.getAccountIdentification() == null
+                            : (e.getAccountIdentification() == null
+                               || account.equals(e.getAccountIdentification()));
+                    return countryOk && accountOk;
+                })
+                .toList();
 
-        return levels.stream()
-                .filter(l -> !l.isEmpty())
-                .findFirst()
-                .orElse(List.of())
-                .stream().map(this::toDomain).toList();
+        return candidates.stream()
+                .collect(Collectors.groupingBy(FeeRuleEntity::getChargeType))
+                .values().stream()
+                .map(group -> group.stream()
+                        .min(Comparator
+                                .comparingInt(FeeRuleEntity::getPriority).reversed()
+                                .thenComparingInt(e -> cascadeLevelOf(e, country, account)))
+                        .orElseThrow())
+                .map(this::toDomain)
+                .toList();
     }
 
-    private List<FeeRuleEntity> filterEntities(List<FeeRuleEntity> all,
-                                                String country, String account) {
-        return all.stream()
-                .filter(e -> Objects.equals(e.getDestinationCountry(), country)
-                          && Objects.equals(e.getAccountIdentification(), account))
-                .toList();
+    private static int cascadeLevelOf(FeeRuleEntity e, String country, String account) {
+        boolean specificCountry = country != null && country.equals(e.getDestinationCountry());
+        boolean specificAccount = account != null && account.equals(e.getAccountIdentification());
+        if (specificCountry && specificAccount) return 1;
+        if (specificCountry)                    return 2;
+        if (specificAccount)                    return 3;
+        return 4;
     }
 
     @Override
