@@ -30,6 +30,13 @@ public final class FeeRule {
         this.currency = currency;
     }
 
+    public BigDecimal applyBounds(BigDecimal fee) {
+        BigDecimal result = fee;
+        if (minFee != null && result.compareTo(minFee) < 0) result = minFee;
+        if (maxFee != null && result.compareTo(maxFee) > 0) result = maxFee;
+        return result;
+    }
+
     public String getChargeType()                { return chargeType; }
     public ChargeBearer getChargeBearer()        { return chargeBearer; }
     public FeeType getFeeType()                  { return feeType; }
