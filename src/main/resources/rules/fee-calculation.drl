@@ -48,6 +48,7 @@ then
     BigDecimal fee = $r.getInstructedAmount().amount()
                        .multiply($rule.getPercentage().orElseThrow())
                        .setScale(Math.max(scale, 0), RoundingMode.HALF_UP);
+    fee = $rule.applyBounds(fee).setScale(Math.max(scale, 0), RoundingMode.HALF_UP);
     charges.add(new Charge(ChargeBearer.BorneByDebtor, $rule.getChargeType(),
         new InstructedAmount(fee, $r.getInstructedAmount().currency()),
         $r.getDebtorAccountOrNull()));
@@ -64,6 +65,7 @@ then
     BigDecimal fee = $r.getInstructedAmount().amount()
                        .multiply($rule.getPercentage().orElseThrow())
                        .setScale(Math.max(scale, 0), RoundingMode.HALF_UP);
+    fee = $rule.applyBounds(fee).setScale(Math.max(scale, 0), RoundingMode.HALF_UP);
     charges.add(new Charge(ChargeBearer.BorneByCreditor, $rule.getChargeType(),
         new InstructedAmount(fee, $r.getInstructedAmount().currency()),
         $r.getCreditorAccountOrNull()));

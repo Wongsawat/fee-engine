@@ -78,4 +78,19 @@ class DryRunFeeCalculationServiceTest {
         assertThat(charges).hasSize(1);
         assertThat(charges.get(0).amount().amount()).isEqualByComparingTo("2.00");
     }
+
+    @Test
+    void dryRunPercentageRuleAppliesMaxCap() {
+        FeeRule rule = new FeeRule("CHARGEType002", ChargeBearer.BorneByDebtor, FeeType.PERCENTAGE,
+                null, new BigDecimal("0.01"), null, new BigDecimal("5.00"), List.of(), "GBP");
+        FeeRequest request = new FeeRequest(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("1000.00"), "GBP"),
+                new AccountRef("SortCodeAccountNumber", "123"), null);
+
+        List<Charge> charges = service.dryRun(new DryRunFeeCalculationUseCase.DryRunCommand(rule, request));
+
+        // 1% of 1000 = 10.00, capped to 5.00
+        assertThat(charges.get(0).amount().amount()).isEqualByComparingTo("5.00");
+    }
 }
