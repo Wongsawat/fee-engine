@@ -237,4 +237,36 @@ class CalculateFeesServiceTest {
         assertThat(result.get(0).chargeType()).isEqualTo("CHARGEType004");
         assertThat(result.get(0).amount().amount()).isEqualByComparingTo("2.00");
     }
+
+    @Test
+    void passesDestinationCountryToRepositoryForInternationalPayment() {
+        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of());
+
+        service.calculate(new CalculateFeesUseCase.Command(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("500.00"), "USD"),
+                Optional.of(new AccountRef("IBAN", "GB29NWBK60161331926819")),
+                Optional.empty(), Optional.of("IN")));
+
+        verify(feeRuleRepository).findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "USD", Optional.of("IN"), Optional.of("GB29NWBK60161331926819"));
+    }
+
+    @Test
+    void passesEmptyDestinationCountryForDomesticPayment() {
+        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of());
+
+        service.calculate(new CalculateFeesUseCase.Command(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("100.00"), "GBP"),
+                Optional.of(new AccountRef("SortCodeAccountNumber", "12345678901234")),
+                Optional.empty(), Optional.empty()));
+
+        verify(feeRuleRepository).findMatching(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.of("12345678901234"));
+    }
 }

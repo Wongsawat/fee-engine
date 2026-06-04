@@ -220,4 +220,55 @@ class FeeRuleAdminControllerTest {
                             """))
                 .andExpect(status().isBadRequest());
     }
+
+    private FeeRuleDetails internationalDetailsWithCountry() {
+        return new FeeRuleDetails(RULE_ID, "INTERNATIONAL", "SWIFT", "BorneByDebtor", null, "IN",
+                "CHARGEType001", "FLAT", new BigDecimal("5.00"), null, null, null, null, "USD",
+                true, 0, Instant.now(), "system", Instant.now(), "system");
+    }
+
+    @Test
+    void createInternationalRuleRoundTripsDestinationCountry() throws Exception {
+        when(manageFeeRulesUseCase.create(any())).thenReturn(internationalDetailsWithCountry());
+
+        mockMvc.perform(post("/admin/fee-rules")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client"))
+                                .authorities(() -> "SCOPE_fee-rules:write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "INTERNATIONAL",
+                              "scheme": "SWIFT",
+                              "chargeBearer": "BorneByDebtor",
+                              "destinationCountry": "IN",
+                              "chargeType": "CHARGEType001",
+                              "feeType": "FLAT",
+                              "flatAmount": 5.00,
+                              "currency": "USD"
+                            }
+                            """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.destinationCountry").value("IN"));
+    }
+
+    @Test
+    void rejectsDomesticRuleWithDestinationCountry() throws Exception {
+        mockMvc.perform(post("/admin/fee-rules")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client"))
+                                .authorities(() -> "SCOPE_fee-rules:write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "BorneByDebtor",
+                              "destinationCountry": "IN",
+                              "chargeType": "CHARGEType001",
+                              "feeType": "FLAT",
+                              "flatAmount": 1.50,
+                              "currency": "GBP"
+                            }
+                            """))
+                .andExpect(status().isBadRequest());
+    }
 }

@@ -14,7 +14,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -127,5 +129,28 @@ class FeeCalculationControllerTest {
                             """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("Invalid request parameter value"));
+    }
+
+    @Test
+    void passesDestinationCountryFromRequestToUseCase() throws Exception {
+        when(calculateFeesUseCase.calculate(any())).thenReturn(List.of());
+
+        mockMvc.perform(post("/fee-calculations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "INTERNATIONAL",
+                              "scheme": "SWIFT",
+                              "chargeBearer": "BorneByDebtor",
+                              "instructedAmount": { "amount": "500.00", "currency": "USD" },
+                              "destinationCountry": "IN"
+                            }
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.charges").isEmpty());
+
+        var captor = org.mockito.ArgumentCaptor.forClass(CalculateFeesUseCase.Command.class);
+        verify(calculateFeesUseCase).calculate(captor.capture());
+        assertThat(captor.getValue().destinationCountry()).contains("IN");
     }
 }
