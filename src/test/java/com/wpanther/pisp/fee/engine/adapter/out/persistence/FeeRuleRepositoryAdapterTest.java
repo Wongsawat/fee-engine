@@ -420,4 +420,91 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         var found = jpaRepo.findById(entity.getId()).orElseThrow();
         assertThat(found.getDestinationCountry()).isEqualTo("IN");
     }
+
+    @Test
+    void countrySpecificRuleWinsOverAnyCountryRule() {
+        var anyCountry = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        jpaRepo.saveAndFlush(anyCountry);
+
+        var inRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        inRule.setDestinationCountry("IN");
+        inRule.setChargeType("IN_RULE");
+        jpaRepo.saveAndFlush(inRule);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.of("IN"), Optional.empty());
+
+        assertThat(rules).hasSize(1);
+        assertThat(rules.get(0).getChargeType()).isEqualTo("IN_RULE");
+    }
+
+    @Test
+    void fallsBackToAnyCountryRuleWhenNoCountrySpecificRuleExists() {
+        var anyCountry = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        jpaRepo.saveAndFlush(anyCountry);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.of("FR"), Optional.empty());
+
+        assertThat(rules).hasSize(1);
+        assertThat(rules.get(0).getDestinationCountry()).isEmpty();
+    }
+
+    @Test
+    void noCountryRequestIgnoresCountrySpecificRules() {
+        var inRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        inRule.setDestinationCountry("IN");
+        jpaRepo.saveAndFlush(inRule);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.empty());
+
+        assertThat(rules).isEmpty();
+    }
+
+    @Test
+    void countryOnlyRuleWinsOverAccountOnlyRule() {
+        // Level 2: country=IN, account=any
+        var countryRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        countryRule.setDestinationCountry("IN");
+        countryRule.setChargeType("COUNTRY_RULE");
+        jpaRepo.saveAndFlush(countryRule);
+
+        // Level 3: country=any, account=ACC1
+        var accountRule = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", "ACC1");
+        accountRule.setChargeType("ACCOUNT_RULE");
+        jpaRepo.saveAndFlush(accountRule);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.of("IN"), Optional.of("ACC1"));
+
+        assertThat(rules).hasSize(1);
+        assertThat(rules.get(0).getChargeType()).isEqualTo("COUNTRY_RULE");
+    }
+
+    @Test
+    void countryAndAccountSpecificWinsOverCountryOnlyAndAccountOnly() {
+        // Level 1: country=IN, account=ACC1
+        var l1 = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", "ACC1");
+        l1.setDestinationCountry("IN");
+        l1.setChargeType("LEVEL1");
+        jpaRepo.saveAndFlush(l1);
+
+        // Level 2: country=IN, account=any
+        var l2 = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        l2.setDestinationCountry("IN");
+        l2.setChargeType("LEVEL2");
+        jpaRepo.saveAndFlush(l2);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.of("IN"), Optional.of("ACC1"));
+
+        assertThat(rules).hasSize(1);
+        assertThat(rules.get(0).getChargeType()).isEqualTo("LEVEL1");
+    }
 }

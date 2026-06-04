@@ -35,17 +35,27 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
         List<FeeRuleEntity> all = jpaRepo.findActive(
                 paymentType.name(), scheme.name(), chargeBearer.name(), currency);
 
-        boolean hasSpecificRule = accountIdentification.isPresent() && all.stream()
-                .anyMatch(e -> accountIdentification.get().equals(e.getAccountIdentification()));
+        String country = destinationCountry.orElse(null);
+        String account = accountIdentification.orElse(null);
 
+        List<List<FeeRuleEntity>> levels = new ArrayList<>();
+        if (country != null && account != null) levels.add(filterEntities(all, country, account));
+        if (country != null)                    levels.add(filterEntities(all, country, null));
+        if (account != null)                    levels.add(filterEntities(all, null, account));
+        levels.add(filterEntities(all, null, null));
+
+        return levels.stream()
+                .filter(l -> !l.isEmpty())
+                .findFirst()
+                .orElse(List.of())
+                .stream().map(this::toDomain).toList();
+    }
+
+    private List<FeeRuleEntity> filterEntities(List<FeeRuleEntity> all,
+                                                String country, String account) {
         return all.stream()
-                .filter(e -> {
-                    if (e.getAccountIdentification() == null) return !hasSpecificRule;
-                    return accountIdentification
-                            .map(id -> id.equals(e.getAccountIdentification()))
-                            .orElse(false);
-                })
-                .map(this::toDomain)
+                .filter(e -> Objects.equals(e.getDestinationCountry(), country)
+                          && Objects.equals(e.getAccountIdentification(), account))
                 .toList();
     }
 
