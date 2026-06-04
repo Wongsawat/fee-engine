@@ -12,3 +12,6 @@ target/
 CLAUDE.md
 .claude/
 docs/superpowers
+.claude/worktrees/
+.git/worktrees/
+.worktrees
