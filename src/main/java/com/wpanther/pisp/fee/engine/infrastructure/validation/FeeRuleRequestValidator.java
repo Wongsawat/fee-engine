@@ -21,10 +21,10 @@ public class FeeRuleRequestValidator implements ConstraintValidator<ValidFeeRule
         }
 
         return switch (req.feeType()) {
-            case "FLAT" -> validateFlat(req);
-            case "PERCENTAGE" -> validatePercentage(req);
-            case "TIERED" -> validateTiered(req);
-            case "FREE" -> validateFree(req);
+            case "FLAT" -> validateFlat(req) && capsAbsent(req);
+            case "PERCENTAGE" -> validatePercentage(req) && validateCaps(req);
+            case "TIERED" -> validateTiered(req) && capsAbsent(req);
+            case "FREE" -> validateFree(req) && capsAbsent(req);
             default -> false;
         };
     }
@@ -51,5 +51,17 @@ public class FeeRuleRequestValidator implements ConstraintValidator<ValidFeeRule
     private boolean validateFree(FeeRuleRequest req) {
         return req.flatAmount() == null && req.percentage() == null
                 && (req.tiers() == null || req.tiers().isEmpty());
+    }
+
+    private boolean capsAbsent(FeeRuleRequest req) {
+        return req.minFee() == null && req.maxFee() == null;
+    }
+
+    private boolean validateCaps(FeeRuleRequest req) {
+        if (req.minFee() != null && req.minFee().compareTo(BigDecimal.ZERO) <= 0) return false;
+        if (req.maxFee() != null && req.maxFee().compareTo(BigDecimal.ZERO) <= 0) return false;
+        if (req.minFee() != null && req.maxFee() != null
+                && req.minFee().compareTo(req.maxFee()) > 0) return false;
+        return true;
     }
 }

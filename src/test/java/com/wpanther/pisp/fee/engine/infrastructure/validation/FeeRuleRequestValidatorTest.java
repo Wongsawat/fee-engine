@@ -114,4 +114,61 @@ class FeeRuleRequestValidatorTest {
                 null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP", 0L);
         assertThat(validator.isValid(request, context)).isTrue();
     }
+
+    @Test
+    void validPercentageRuleWithCaps() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
+                new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP");
+        assertThat(validator.isValid(request, context)).isTrue();
+    }
+
+    @Test
+    void percentageRuleWithFloorOnlyIsValid() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
+                new BigDecimal("1.00"), null, null, "GBP");
+        assertThat(validator.isValid(request, context)).isTrue();
+    }
+
+    @Test
+    void percentageWithMinGreaterThanMaxIsInvalid() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
+                new BigDecimal("50.00"), new BigDecimal("1.00"), null, "GBP");
+        assertThat(validator.isValid(request, context)).isFalse();
+    }
+
+    @Test
+    void percentageWithNonPositiveMinFeeIsInvalid() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
+                BigDecimal.ZERO, null, null, "GBP");
+        assertThat(validator.isValid(request, context)).isFalse();
+    }
+
+    @Test
+    void flatRuleWithCapsIsInvalid() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null,
+                new BigDecimal("1.00"), null, null, "GBP");
+        assertThat(validator.isValid(request, context)).isFalse();
+    }
+
+    @Test
+    void tieredRuleWithCapsIsInvalid() {
+        var tiers = List.of(new TierDto(new BigDecimal("0"), new BigDecimal("1000"), new BigDecimal("0.50")));
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, "CHARGEType003", "TIERED", null, null,
+                null, new BigDecimal("5.00"), tiers, "GBP");
+        assertThat(validator.isValid(request, context)).isFalse();
+    }
+
+    @Test
+    void freeRuleWithCapsIsInvalid() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, "CHARGEType004", "FREE", null, null,
+                new BigDecimal("1.00"), null, null, "GBP");
+        assertThat(validator.isValid(request, context)).isFalse();
+    }
 }
