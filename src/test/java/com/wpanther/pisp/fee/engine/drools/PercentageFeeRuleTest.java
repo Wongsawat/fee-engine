@@ -19,7 +19,7 @@ class PercentageFeeRuleTest extends DroolsTestSupport {
                 new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
 
         FeeRule rule = new FeeRule("CHARGEType002", ChargeBearer.BorneByDebtor, FeeType.PERCENTAGE,
-                null, new BigDecimal("0.002"), List.of(), "GBP");
+                null, new BigDecimal("0.002"), null, null, List.of(), "GBP");
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -35,7 +35,7 @@ class PercentageFeeRuleTest extends DroolsTestSupport {
                 new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
 
         FeeRule rule = new FeeRule("CHARGEType002", ChargeBearer.BorneByDebtor, FeeType.PERCENTAGE,
-                null, new BigDecimal("0.002"), List.of(), "GBP");
+                null, new BigDecimal("0.002"), null, null, List.of(), "GBP");
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -50,7 +50,7 @@ class PercentageFeeRuleTest extends DroolsTestSupport {
                 new AccountRef("IBAN", "KW81CBKU0000000000001234560101"), null);
 
         FeeRule rule = new FeeRule("CHARGEType002", ChargeBearer.BorneByDebtor, FeeType.PERCENTAGE,
-                null, new BigDecimal("0.002"), List.of(), "KWD");
+                null, new BigDecimal("0.002"), null, null, List.of(), "KWD");
 
         List<Charge> charges = fireRules(request, List.of(rule));
 

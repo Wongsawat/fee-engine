@@ -19,7 +19,7 @@ class FlatFeeRuleTest extends DroolsTestSupport {
                 new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
 
         FeeRule rule = new FeeRule("CHARGEType001", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("1.50"), null, List.of(), "GBP");
+                new BigDecimal("1.50"), null, null, null, List.of(), "GBP");
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -40,7 +40,7 @@ class FlatFeeRuleTest extends DroolsTestSupport {
                 null, null);
 
         FeeRule rule = new FeeRule("CHARGEType001", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("1.50"), null, List.of(), "GBP");
+                new BigDecimal("1.50"), null, null, null, List.of(), "GBP");
 
         List<Charge> charges = fireRules(request, List.of(rule));
 

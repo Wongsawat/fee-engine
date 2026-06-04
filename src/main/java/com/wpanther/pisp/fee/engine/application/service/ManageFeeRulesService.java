@@ -26,7 +26,9 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
         var details = new FeeRuleDetails(
                 null, command.paymentType(), command.scheme(), command.chargeBearer(),
                 command.accountIdentification(), command.chargeType(), command.feeType(),
-                command.flatAmount(), command.percentage(), command.tiers(), command.currency(),
+                command.flatAmount(), command.percentage(),
+                command.minFee(), command.maxFee(),
+                command.tiers(), command.currency(),
                 true, 0, null, null, null, null);
         return feeRuleRepository.save(details);
     }
@@ -42,7 +44,9 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
         var updated = new FeeRuleDetails(
                 existing.id(), command.paymentType(), command.scheme(), command.chargeBearer(),
                 command.accountIdentification(), command.chargeType(), command.feeType(),
-                command.flatAmount(), command.percentage(), command.tiers(), command.currency(),
+                command.flatAmount(), command.percentage(),
+                command.minFee(), command.maxFee(),
+                command.tiers(), command.currency(),
                 existing.active(), existing.version(),
                 existing.createdAt(), existing.createdBy(), existing.updatedAt(), existing.updatedBy());
         return feeRuleRepository.save(updated);
@@ -73,7 +77,9 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
         var toggled = new FeeRuleDetails(
                 existing.id(), existing.paymentType(), existing.scheme(), existing.chargeBearer(),
                 existing.accountIdentification(), existing.chargeType(), existing.feeType(),
-                existing.flatAmount(), existing.percentage(), existing.tiers(), existing.currency(),
+                existing.flatAmount(), existing.percentage(),
+                existing.minFee(), existing.maxFee(),
+                existing.tiers(), existing.currency(),
                 active, existing.version(),
                 existing.createdAt(), existing.createdBy(), existing.updatedAt(), existing.updatedBy());
         return feeRuleRepository.save(toggled);

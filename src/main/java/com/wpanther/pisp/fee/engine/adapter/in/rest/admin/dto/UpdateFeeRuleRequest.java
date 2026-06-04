@@ -18,6 +18,8 @@ public record UpdateFeeRuleRequest(
     @NotBlank String feeType,
     BigDecimal flatAmount,
     BigDecimal percentage,
+    BigDecimal minFee,
+    BigDecimal maxFee,
     @Valid List<TierDto> tiers,
     @NotBlank String currency,
     @NotNull Long version

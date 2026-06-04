@@ -13,16 +13,18 @@ public interface ManageFeeRulesUseCase {
     record CreateCommand(
         String paymentType, String scheme, String chargeBearer,
         String accountIdentification, String chargeType, String feeType,
-        BigDecimal flatAmount, BigDecimal percentage, List<FeeRuleDetails.TierInfo> tiers,
-        String currency
+        BigDecimal flatAmount, BigDecimal percentage,
+        BigDecimal minFee, BigDecimal maxFee,
+        List<FeeRuleDetails.TierInfo> tiers, String currency
     ) {}
 
     record UpdateCommand(
         UUID id,
         String paymentType, String scheme, String chargeBearer,
         String accountIdentification, String chargeType, String feeType,
-        BigDecimal flatAmount, BigDecimal percentage, List<FeeRuleDetails.TierInfo> tiers,
-        String currency, long version
+        BigDecimal flatAmount, BigDecimal percentage,
+        BigDecimal minFee, BigDecimal maxFee,
+        List<FeeRuleDetails.TierInfo> tiers, String currency, long version
     ) {}
 
     FeeRuleDetails create(CreateCommand command);

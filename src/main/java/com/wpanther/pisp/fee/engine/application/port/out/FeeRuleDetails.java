@@ -15,6 +15,8 @@ public record FeeRuleDetails(
     String feeType,
     BigDecimal flatAmount,
     BigDecimal percentage,
+    BigDecimal minFee,
+    BigDecimal maxFee,
     List<TierInfo> tiers,
     String currency,
     boolean active,

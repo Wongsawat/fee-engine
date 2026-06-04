@@ -23,7 +23,7 @@ class TieredFeeRuleTest extends DroolsTestSupport {
                 new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
 
         FeeRule rule = new FeeRule("CHARGEType003", ChargeBearer.BorneByDebtor, FeeType.TIERED,
-                null, null, TIERS, "GBP");
+                null, null, null, null, TIERS, "GBP");
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -39,7 +39,7 @@ class TieredFeeRuleTest extends DroolsTestSupport {
                 new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
 
         FeeRule rule = new FeeRule("CHARGEType003", ChargeBearer.BorneByDebtor, FeeType.TIERED,
-                null, null, TIERS, "GBP");
+                null, null, null, null, TIERS, "GBP");
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -55,7 +55,7 @@ class TieredFeeRuleTest extends DroolsTestSupport {
                 new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
 
         FeeRule rule = new FeeRule("CHARGEType003", ChargeBearer.BorneByDebtor, FeeType.TIERED,
-                null, null, TIERS, "GBP");
+                null, null, null, null, TIERS, "GBP");
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -73,7 +73,7 @@ class TieredFeeRuleTest extends DroolsTestSupport {
                 new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
 
         FeeRule rule = new FeeRule("CHARGEType003", ChargeBearer.BorneByDebtor, FeeType.TIERED,
-                null, null, gappedTiers, "GBP");
+                null, null, null, null, gappedTiers, "GBP");
 
         List<Charge> charges = fireRules(request, List.of(rule));
 

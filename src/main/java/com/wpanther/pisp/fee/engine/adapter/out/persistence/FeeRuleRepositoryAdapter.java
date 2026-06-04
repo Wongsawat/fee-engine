@@ -65,6 +65,8 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
         entity.setFeeType(details.feeType());
         entity.setFlatAmount(details.flatAmount());
         entity.setPercentage(details.percentage());
+        entity.setMinFee(details.minFee());
+        entity.setMaxFee(details.maxFee());
         entity.setTiers(toJsonNode(details.tiers()));
         entity.setCurrency(details.currency());
         entity.setActive(details.active());
@@ -106,6 +108,7 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
                 e.getChargeType(), ChargeBearer.valueOf(e.getChargeBearer()),
                 FeeType.valueOf(e.getFeeType()),
                 e.getFlatAmount(), e.getPercentage(),
+                e.getMinFee(), e.getMaxFee(),
                 tiers, e.getCurrency());
     }
 
@@ -123,7 +126,9 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
         return new FeeRuleDetails(
                 e.getId(), e.getPaymentType(), e.getScheme(), e.getChargeBearer(),
                 e.getAccountIdentification(), e.getChargeType(), e.getFeeType(),
-                e.getFlatAmount(), e.getPercentage(), tiers, e.getCurrency(),
+                e.getFlatAmount(), e.getPercentage(),
+                e.getMinFee(), e.getMaxFee(),
+                tiers, e.getCurrency(),
                 e.isActive(), e.getVersion(),
                 e.getCreatedAt(), e.getCreatedBy(), e.getUpdatedAt(), e.getUpdatedBy());
     }

@@ -16,6 +16,7 @@ public class FeeRuleDtoMapper {
                 details.id(), details.paymentType(), details.scheme(), details.chargeBearer(),
                 details.accountIdentification(), details.chargeType(), details.feeType(),
                 details.flatAmount(), details.percentage(),
+                details.minFee(), details.maxFee(),
                 toTierDtoList(details.tiers()), details.currency(),
                 details.active(), details.version(),
                 details.createdAt(), details.createdBy(), details.updatedAt(), details.updatedBy());
@@ -29,6 +30,7 @@ public class FeeRuleDtoMapper {
                 request.chargeType(), ChargeBearer.valueOf(request.chargeBearer()),
                 FeeType.valueOf(request.feeType()),
                 request.flatAmount(), request.percentage(),
+                request.minFee(), request.maxFee(),
                 tiers, request.currency());
     }
 
@@ -55,6 +57,7 @@ public class FeeRuleDtoMapper {
                 request.paymentType(), request.scheme(), request.chargeBearer(),
                 request.accountIdentification(), request.chargeType(), request.feeType(),
                 request.flatAmount(), request.percentage(),
+                request.minFee(), request.maxFee(),
                 toTierInfoList(request.tiers()), request.currency());
     }
 
@@ -63,6 +66,7 @@ public class FeeRuleDtoMapper {
                 id, request.paymentType(), request.scheme(), request.chargeBearer(),
                 request.accountIdentification(), request.chargeType(), request.feeType(),
                 request.flatAmount(), request.percentage(),
+                request.minFee(), request.maxFee(),
                 toTierInfoList(request.tiers()), request.currency(), request.version());
     }
 

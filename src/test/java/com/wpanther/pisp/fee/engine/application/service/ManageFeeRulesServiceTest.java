@@ -38,7 +38,7 @@ class ManageFeeRulesServiceTest {
 
     private FeeRuleDetails flatDetails() {
         return new FeeRuleDetails(ruleId, "DOMESTIC", "FPS", "BorneByDebtor", null,
-                "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, "GBP",
+                "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP",
                 true, 0, Instant.now(), "system", Instant.now(), "system");
     }
 
@@ -48,13 +48,15 @@ class ManageFeeRulesServiceTest {
             var d = (FeeRuleDetails) inv.getArgument(0);
             return new FeeRuleDetails(UUID.randomUUID(), d.paymentType(), d.scheme(),
                     d.chargeBearer(), d.accountIdentification(), d.chargeType(), d.feeType(),
-                    d.flatAmount(), d.percentage(), d.tiers(), d.currency(), d.active(),
+                    d.flatAmount(), d.percentage(),
+                    d.minFee(), d.maxFee(),
+                    d.tiers(), d.currency(), d.active(),
                     0, Instant.now(), "system", Instant.now(), "system");
         });
 
         ManageFeeRulesUseCase.CreateCommand cmd = new ManageFeeRulesUseCase.CreateCommand(
                 "DOMESTIC", "FPS", "BorneByDebtor", null, "CHARGEType001", "FLAT",
-                new BigDecimal("1.50"), null, null, "GBP");
+                new BigDecimal("1.50"), null, null, null, null, "GBP");
         FeeRuleDetails result = service.create(cmd);
 
         assertThat(result.id()).isNotNull();
@@ -70,7 +72,7 @@ class ManageFeeRulesServiceTest {
 
         ManageFeeRulesUseCase.UpdateCommand cmd = new ManageFeeRulesUseCase.UpdateCommand(
                 ruleId, "DOMESTIC", "FPS", "BorneByDebtor", null, "CHARGEType001", "FLAT",
-                new BigDecimal("2.00"), null, null, "GBP", 0L);
+                new BigDecimal("2.00"), null, null, null, null, "GBP", 0L);
         FeeRuleDetails result = service.update(cmd);
 
         assertThat(result.flatAmount()).isEqualByComparingTo("2.00");
@@ -83,7 +85,7 @@ class ManageFeeRulesServiceTest {
 
         assertThatThrownBy(() -> service.update(new ManageFeeRulesUseCase.UpdateCommand(
                 ruleId, "DOMESTIC", "FPS", "BorneByDebtor", null, "CHARGEType001", "FLAT",
-                new BigDecimal("2.00"), null, null, "GBP", 0L)))
+                new BigDecimal("2.00"), null, null, null, null, "GBP", 0L)))
                 .isInstanceOf(FeeRuleNotFoundException.class);
     }
 
@@ -138,20 +140,20 @@ class ManageFeeRulesServiceTest {
     @Test
     void updateThrowsOnStaleVersion() {
         var current = new FeeRuleDetails(ruleId, "DOMESTIC", "FPS", "BorneByDebtor", null,
-                "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, "GBP",
+                "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP",
                 true, 2, Instant.now(), "system", Instant.now(), "system");
         when(repository.findById(ruleId)).thenReturn(Optional.of(current));
 
         assertThatThrownBy(() -> service.update(new ManageFeeRulesUseCase.UpdateCommand(
                 ruleId, "DOMESTIC", "FPS", "BorneByDebtor", null, "CHARGEType001", "FLAT",
-                new BigDecimal("2.00"), null, null, "GBP", 0L)))
+                new BigDecimal("2.00"), null, null, null, null, "GBP", 0L)))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     @Test
     void toggleStatusThrowsOnStaleVersion() {
         var current = new FeeRuleDetails(ruleId, "DOMESTIC", "FPS", "BorneByDebtor", null,
-                "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, "GBP",
+                "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP",
                 true, 2, Instant.now(), "system", Instant.now(), "system");
         when(repository.findById(ruleId)).thenReturn(Optional.of(current));
 

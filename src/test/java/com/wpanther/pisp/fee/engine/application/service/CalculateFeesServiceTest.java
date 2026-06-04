@@ -90,7 +90,7 @@ class CalculateFeesServiceTest {
     @Test
     void returnsFlatChargeWhenFlatRuleMatches() {
         FeeRule rule = new FeeRule("CHARGEType001", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("1.50"), null, List.of(), "GBP");
+                new BigDecimal("1.50"), null, null, null, List.of(), "GBP");
         when(feeRuleRepository.findMatching(any(), any(), any(), any(), any()))
                 .thenReturn(List.of(rule));
 
@@ -120,9 +120,9 @@ class CalculateFeesServiceTest {
     @Test
     void sharedBearerRetainsBothChargesWhenSameChargeTypeHasDifferentBearer() {
         FeeRule debtorRule = new FeeRule("TRANSFER_FEE", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("1.50"), null, List.of(), "GBP");
+                new BigDecimal("1.50"), null, null, null, List.of(), "GBP");
         FeeRule creditorRule = new FeeRule("TRANSFER_FEE", ChargeBearer.BorneByCreditor, FeeType.FLAT,
-                new BigDecimal("0.50"), null, List.of(), "GBP");
+                new BigDecimal("0.50"), null, null, null, List.of(), "GBP");
         when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByDebtor), any(), any()))
                 .thenReturn(List.of(debtorRule));
         when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByCreditor), any(), any()))
@@ -144,9 +144,9 @@ class CalculateFeesServiceTest {
     @Test
     void sharedBearerLooksUpBothDebtorAndCreditorRules() {
         FeeRule debtorRule = new FeeRule("CHARGEType001", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("1.50"), null, List.of(), "GBP");
+                new BigDecimal("1.50"), null, null, null, List.of(), "GBP");
         FeeRule creditorRule = new FeeRule("CHARGEType002", ChargeBearer.BorneByCreditor, FeeType.FLAT,
-                new BigDecimal("0.50"), null, List.of(), "GBP");
+                new BigDecimal("0.50"), null, null, null, List.of(), "GBP");
         when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByDebtor), any(), any()))
                 .thenReturn(List.of(debtorRule));
         when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByCreditor), any(), any()))
@@ -172,7 +172,7 @@ class CalculateFeesServiceTest {
     @Test
     void returnsFreeChargeWithZeroAmountWhenFreeRuleMatches() {
         FeeRule rule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, List.of(), "GBP");
+                null, null, null, null, List.of(), "GBP");
         when(feeRuleRepository.findMatching(any(), any(), any(), any(), any()))
                 .thenReturn(List.of(rule));
 
@@ -192,9 +192,9 @@ class CalculateFeesServiceTest {
     @Test
     void sharedBearerWithFreeRuleProducesOneZeroChargePerBearer() {
         FeeRule debtorFreeRule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, List.of(), "GBP");
+                null, null, null, null, List.of(), "GBP");
         FeeRule creditorFreeRule = new FeeRule("CHARGEType004", ChargeBearer.BorneByCreditor, FeeType.FREE,
-                null, null, List.of(), "GBP");
+                null, null, null, null, List.of(), "GBP");
         when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByDebtor), any(), any()))
                 .thenReturn(List.of(debtorFreeRule));
         when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByCreditor), any(), any()))
@@ -216,9 +216,9 @@ class CalculateFeesServiceTest {
     @Test
     void flatRuleWinsOverFreeRuleForSameChargeTypeAndBearer() {
         FeeRule flatRule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("2.00"), null, List.of(), "GBP");
+                new BigDecimal("2.00"), null, null, null, List.of(), "GBP");
         FeeRule freeRule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, List.of(), "GBP");
+                null, null, null, null, List.of(), "GBP");
         when(feeRuleRepository.findMatching(any(), any(), any(), any(), any()))
                 .thenReturn(List.of(flatRule, freeRule));
 

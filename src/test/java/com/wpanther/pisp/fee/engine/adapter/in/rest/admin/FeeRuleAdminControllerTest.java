@@ -35,7 +35,7 @@ class FeeRuleAdminControllerTest {
 
     private FeeRuleDetails testDetails() {
         return new FeeRuleDetails(RULE_ID, "DOMESTIC", "FPS", "BorneByDebtor", null,
-                "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, "GBP",
+                "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP",
                 true, 0, Instant.now(), "system", Instant.now(), "system");
     }
 

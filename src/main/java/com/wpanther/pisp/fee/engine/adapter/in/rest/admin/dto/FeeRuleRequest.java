@@ -7,6 +7,8 @@ public interface FeeRuleRequest {
     String feeType();
     BigDecimal flatAmount();
     BigDecimal percentage();
+    BigDecimal minFee();
+    BigDecimal maxFee();
     List<TierDto> tiers();
     String chargeBearer();
 }

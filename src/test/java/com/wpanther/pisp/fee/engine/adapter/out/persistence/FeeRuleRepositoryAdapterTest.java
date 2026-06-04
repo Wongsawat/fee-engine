@@ -234,7 +234,7 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         var details = new FeeRuleDetails(
                 null, "DOMESTIC", "FPS", "BorneByDebtor", null,
                 "CHARGEType001", "FLAT", new BigDecimal("2.50"), null,
-                null, "GBP", true, 0,
+                null, null, null, "GBP", true, 0,
                 null, null, null, null);
 
         FeeRuleDetails saved = adapter.save(details);
