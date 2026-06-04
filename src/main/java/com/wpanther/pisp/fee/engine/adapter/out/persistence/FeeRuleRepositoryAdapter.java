@@ -30,6 +30,7 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
     @Override
     public List<FeeRule> findMatching(PaymentType paymentType, PaymentScheme scheme,
                                       ChargeBearer chargeBearer, String currency,
+                                      Optional<String> destinationCountry,
                                       Optional<String> accountIdentification) {
         List<FeeRuleEntity> all = jpaRepo.findActive(
                 paymentType.name(), scheme.name(), chargeBearer.name(), currency);
@@ -61,6 +62,7 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
         entity.setScheme(details.scheme());
         entity.setChargeBearer(details.chargeBearer());
         entity.setAccountIdentification(details.accountIdentification());
+        entity.setDestinationCountry(details.destinationCountry());
         entity.setChargeType(details.chargeType());
         entity.setFeeType(details.feeType());
         entity.setFlatAmount(details.flatAmount());
@@ -109,7 +111,7 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
                 FeeType.valueOf(e.getFeeType()),
                 e.getFlatAmount(), e.getPercentage(),
                 e.getMinFee(), e.getMaxFee(),
-                tiers, e.getCurrency());
+                tiers, e.getCurrency(), e.getDestinationCountry());
     }
 
     private FeeRuleDetails toDetails(FeeRuleEntity e) {
@@ -125,7 +127,8 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
         }
         return new FeeRuleDetails(
                 e.getId(), e.getPaymentType(), e.getScheme(), e.getChargeBearer(),
-                e.getAccountIdentification(), e.getChargeType(), e.getFeeType(),
+                e.getAccountIdentification(), e.getDestinationCountry(),
+                e.getChargeType(), e.getFeeType(),
                 e.getFlatAmount(), e.getPercentage(),
                 e.getMinFee(), e.getMaxFee(),
                 tiers, e.getCurrency(),

@@ -36,10 +36,12 @@ public class CalculateFeesService implements CalculateFeesUseCase {
         if (command.chargeBearer() == ChargeBearer.Shared) {
             List<FeeRule> debtorRules = feeRuleRepository.findMatching(
                     command.paymentType(), command.scheme(), ChargeBearer.BorneByDebtor,
-                    currency, command.debtorAccount().map(AccountRef::identification));
+                    currency, command.destinationCountry(),
+                    command.debtorAccount().map(AccountRef::identification));
             List<FeeRule> creditorRules = feeRuleRepository.findMatching(
                     command.paymentType(), command.scheme(), ChargeBearer.BorneByCreditor,
-                    currency, command.creditorAccount().map(AccountRef::identification));
+                    currency, command.destinationCountry(),
+                    command.creditorAccount().map(AccountRef::identification));
             List<FeeRule> allRules = new ArrayList<>();
             allRules.addAll(debtorRules);
             allRules.addAll(creditorRules);
@@ -52,7 +54,7 @@ public class CalculateFeesService implements CalculateFeesUseCase {
 
         List<FeeRule> rules = feeRuleRepository.findMatching(
                 command.paymentType(), command.scheme(), command.chargeBearer(),
-                currency, accountId);
+                currency, command.destinationCountry(), accountId);
 
         if (rules.isEmpty()) return List.of();
         return fireSession(command, rules);
@@ -63,7 +65,8 @@ public class CalculateFeesService implements CalculateFeesUseCase {
                 command.paymentType(), command.scheme(), command.chargeBearer(),
                 command.instructedAmount(),
                 command.debtorAccount().orElse(null),
-                command.creditorAccount().orElse(null));
+                command.creditorAccount().orElse(null),
+                command.destinationCountry().orElse(null));
 
         KieSession session = kieContainer.newKieSession("FeeSession");
         try {

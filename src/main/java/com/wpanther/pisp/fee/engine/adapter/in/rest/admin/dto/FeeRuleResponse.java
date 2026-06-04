@@ -11,6 +11,7 @@ public record FeeRuleResponse(
     String scheme,
     String chargeBearer,
     String accountIdentification,
+    String destinationCountry,
     String chargeType,
     String feeType,
     BigDecimal flatAmount,

@@ -32,48 +32,50 @@ class CalculateFeesServiceTest {
 
     @Test
     void returnsEmptyListWhenNoRulesMatch() {
-        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any()))
+        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of());
 
         List<Charge> result = service.calculate(new CalculateFeesUseCase.Command(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
                 Optional.of(new AccountRef("SortCodeAccountNumber", "123")),
-                Optional.empty()));
+                Optional.empty(), Optional.empty()));
 
         assertThat(result).isEmpty();
     }
 
     @Test
     void passesDebtorAccountIdToRepositoryWhenBorneByDebtor() {
-        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any()))
+        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of());
 
         service.calculate(new CalculateFeesUseCase.Command(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
                 Optional.of(new AccountRef("SortCodeAccountNumber", "DEBTOR_ID")),
-                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID"))));
+                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID")),
+                Optional.empty()));
 
         verify(feeRuleRepository).findMatching(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
-                "GBP", Optional.of("DEBTOR_ID"));
+                "GBP", Optional.empty(), Optional.of("DEBTOR_ID"));
     }
 
     @Test
     void passesCreditorAccountIdToRepositoryWhenBorneByCreditor() {
-        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any()))
+        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of());
 
         service.calculate(new CalculateFeesUseCase.Command(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByCreditor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
                 Optional.of(new AccountRef("SortCodeAccountNumber", "DEBTOR_ID")),
-                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID"))));
+                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID")),
+                Optional.empty()));
 
         verify(feeRuleRepository).findMatching(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByCreditor,
-                "GBP", Optional.of("CREDITOR_ID"));
+                "GBP", Optional.empty(), Optional.of("CREDITOR_ID"));
     }
 
     @Test
@@ -81,7 +83,7 @@ class CalculateFeesServiceTest {
         List<Charge> result = service.calculate(new CalculateFeesUseCase.Command(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.FollowingServiceLevel,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
-                Optional.empty(), Optional.empty()));
+                Optional.empty(), Optional.empty(), Optional.empty()));
 
         assertThat(result).isEmpty();
         verifyNoInteractions(feeRuleRepository);
@@ -90,15 +92,15 @@ class CalculateFeesServiceTest {
     @Test
     void returnsFlatChargeWhenFlatRuleMatches() {
         FeeRule rule = new FeeRule("CHARGEType001", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("1.50"), null, null, null, List.of(), "GBP");
-        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any()))
+                new BigDecimal("1.50"), null, null, null, List.of(), "GBP", null);
+        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(rule));
 
         List<Charge> result = service.calculate(new CalculateFeesUseCase.Command(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
                 Optional.of(new AccountRef("SortCodeAccountNumber", "DEBTOR_ID")),
-                Optional.empty()));
+                Optional.empty(), Optional.empty()));
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).chargeType()).isEqualTo("CHARGEType001");
@@ -112,7 +114,7 @@ class CalculateFeesServiceTest {
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("100.00"), "XYZ"),
                 Optional.of(new AccountRef("SortCodeAccountNumber", "123")),
-                Optional.empty())))
+                Optional.empty(), Optional.empty())))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("XYZ");
     }
@@ -120,19 +122,20 @@ class CalculateFeesServiceTest {
     @Test
     void sharedBearerRetainsBothChargesWhenSameChargeTypeHasDifferentBearer() {
         FeeRule debtorRule = new FeeRule("TRANSFER_FEE", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("1.50"), null, null, null, List.of(), "GBP");
+                new BigDecimal("1.50"), null, null, null, List.of(), "GBP", null);
         FeeRule creditorRule = new FeeRule("TRANSFER_FEE", ChargeBearer.BorneByCreditor, FeeType.FLAT,
-                new BigDecimal("0.50"), null, null, null, List.of(), "GBP");
-        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByDebtor), any(), any()))
+                new BigDecimal("0.50"), null, null, null, List.of(), "GBP", null);
+        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByDebtor), any(), any(), any()))
                 .thenReturn(List.of(debtorRule));
-        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByCreditor), any(), any()))
+        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByCreditor), any(), any(), any()))
                 .thenReturn(List.of(creditorRule));
 
         List<Charge> result = service.calculate(new CalculateFeesUseCase.Command(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.Shared,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
                 Optional.of(new AccountRef("SortCodeAccountNumber", "DEBTOR_ID")),
-                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID"))));
+                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID")),
+                Optional.empty()));
 
         assertThat(result).hasSize(2);
         assertThat(result).anyMatch(c -> c.chargeBearer() == ChargeBearer.BorneByDebtor
@@ -144,26 +147,27 @@ class CalculateFeesServiceTest {
     @Test
     void sharedBearerLooksUpBothDebtorAndCreditorRules() {
         FeeRule debtorRule = new FeeRule("CHARGEType001", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("1.50"), null, null, null, List.of(), "GBP");
+                new BigDecimal("1.50"), null, null, null, List.of(), "GBP", null);
         FeeRule creditorRule = new FeeRule("CHARGEType002", ChargeBearer.BorneByCreditor, FeeType.FLAT,
-                new BigDecimal("0.50"), null, null, null, List.of(), "GBP");
-        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByDebtor), any(), any()))
+                new BigDecimal("0.50"), null, null, null, List.of(), "GBP", null);
+        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByDebtor), any(), any(), any()))
                 .thenReturn(List.of(debtorRule));
-        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByCreditor), any(), any()))
+        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByCreditor), any(), any(), any()))
                 .thenReturn(List.of(creditorRule));
 
         List<Charge> result = service.calculate(new CalculateFeesUseCase.Command(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.Shared,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
                 Optional.of(new AccountRef("SortCodeAccountNumber", "DEBTOR_ID")),
-                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID"))));
+                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID")),
+                Optional.empty()));
 
         verify(feeRuleRepository).findMatching(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
-                "GBP", Optional.of("DEBTOR_ID"));
+                "GBP", Optional.empty(), Optional.of("DEBTOR_ID"));
         verify(feeRuleRepository).findMatching(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByCreditor,
-                "GBP", Optional.of("CREDITOR_ID"));
+                "GBP", Optional.empty(), Optional.of("CREDITOR_ID"));
         assertThat(result).hasSize(2);
         assertThat(result).anyMatch(c -> c.chargeBearer() == ChargeBearer.BorneByDebtor);
         assertThat(result).anyMatch(c -> c.chargeBearer() == ChargeBearer.BorneByCreditor);
@@ -172,15 +176,15 @@ class CalculateFeesServiceTest {
     @Test
     void returnsFreeChargeWithZeroAmountWhenFreeRuleMatches() {
         FeeRule rule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP");
-        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any()))
+                null, null, null, null, List.of(), "GBP", null);
+        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(rule));
 
         List<Charge> result = service.calculate(new CalculateFeesUseCase.Command(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
                 Optional.of(new AccountRef("SortCodeAccountNumber", "DEBTOR_ID")),
-                Optional.empty()));
+                Optional.empty(), Optional.empty()));
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).chargeType()).isEqualTo("CHARGEType004");
@@ -192,19 +196,20 @@ class CalculateFeesServiceTest {
     @Test
     void sharedBearerWithFreeRuleProducesOneZeroChargePerBearer() {
         FeeRule debtorFreeRule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP");
+                null, null, null, null, List.of(), "GBP", null);
         FeeRule creditorFreeRule = new FeeRule("CHARGEType004", ChargeBearer.BorneByCreditor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP");
-        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByDebtor), any(), any()))
+                null, null, null, null, List.of(), "GBP", null);
+        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByDebtor), any(), any(), any()))
                 .thenReturn(List.of(debtorFreeRule));
-        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByCreditor), any(), any()))
+        when(feeRuleRepository.findMatching(any(), any(), eq(ChargeBearer.BorneByCreditor), any(), any(), any()))
                 .thenReturn(List.of(creditorFreeRule));
 
         List<Charge> result = service.calculate(new CalculateFeesUseCase.Command(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.Shared,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
                 Optional.of(new AccountRef("SortCodeAccountNumber", "DEBTOR_ID")),
-                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID"))));
+                Optional.of(new AccountRef("SortCodeAccountNumber", "CREDITOR_ID")),
+                Optional.empty()));
 
         assertThat(result).hasSize(2);
         assertThat(result).anyMatch(c -> c.chargeBearer() == ChargeBearer.BorneByDebtor
@@ -216,17 +221,17 @@ class CalculateFeesServiceTest {
     @Test
     void flatRuleWinsOverFreeRuleForSameChargeTypeAndBearer() {
         FeeRule flatRule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("2.00"), null, null, null, List.of(), "GBP");
+                new BigDecimal("2.00"), null, null, null, List.of(), "GBP", null);
         FeeRule freeRule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP");
-        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any()))
+                null, null, null, null, List.of(), "GBP", null);
+        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(flatRule, freeRule));
 
         List<Charge> result = service.calculate(new CalculateFeesUseCase.Command(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
                 Optional.of(new AccountRef("SortCodeAccountNumber", "DEBTOR_ID")),
-                Optional.empty()));
+                Optional.empty(), Optional.empty()));
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).chargeType()).isEqualTo("CHARGEType004");

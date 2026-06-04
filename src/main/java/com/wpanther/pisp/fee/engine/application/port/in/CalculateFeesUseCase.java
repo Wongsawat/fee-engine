@@ -12,7 +12,8 @@ public interface CalculateFeesUseCase {
         ChargeBearer chargeBearer,
         InstructedAmount instructedAmount,
         Optional<AccountRef> debtorAccount,
-        Optional<AccountRef> creditorAccount
+        Optional<AccountRef> creditorAccount,
+        Optional<String> destinationCountry
     ) {}
 
     List<Charge> calculate(Command command);

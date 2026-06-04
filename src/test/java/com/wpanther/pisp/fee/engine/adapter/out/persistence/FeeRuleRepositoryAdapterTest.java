@@ -42,7 +42,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         jpaRepo.save(FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null));
 
         List<FeeRule> rules = adapter.findMatching(
-                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty());
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.empty());
 
         assertThat(rules).hasSize(1);
         assertThat(rules.get(0).getFeeType()).isEqualTo(FeeType.FLAT);
@@ -55,7 +56,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         jpaRepo.save(FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", "123"));
 
         List<FeeRule> rules = adapter.findMatching(
-                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.of("123"));
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.of("123"));
 
         assertThat(rules).hasSize(1);
         assertThat(rules.get(0).getChargeType()).isEqualTo("CHARGEType001");
@@ -67,7 +69,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         jpaRepo.save(FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null));
 
         List<FeeRule> rules = adapter.findMatching(
-                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.of("UNKNOWN"));
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.of("UNKNOWN"));
 
         assertThat(rules).hasSize(1);
     }
@@ -77,7 +80,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         jpaRepo.save(FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null));
 
         List<FeeRule> rules = adapter.findMatching(
-                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "EUR", Optional.empty());
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "EUR", Optional.empty(), Optional.empty());
 
         assertThat(rules).isEmpty();
     }
@@ -85,7 +89,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
     @Test
     void returnsEmptyWhenNoRulesMatch() {
         List<FeeRule> rules = adapter.findMatching(
-                PaymentType.FILE, PaymentScheme.BACS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty());
+                PaymentType.FILE, PaymentScheme.BACS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.empty());
         assertThat(rules).isEmpty();
     }
 
@@ -96,7 +101,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         jpaRepo.save(entity);
 
         List<FeeRule> rules = adapter.findMatching(
-                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty());
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.empty());
         assertThat(rules).isEmpty();
     }
 
@@ -105,7 +111,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         jpaRepo.save(FeeRuleEntityFixtures.freeRule("DOMESTIC", "FPS", "BorneByDebtor"));
 
         List<FeeRule> rules = adapter.findMatching(
-                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty());
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.empty());
 
         assertThat(rules).hasSize(1);
         FeeRule rule = rules.get(0);
@@ -163,7 +170,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         jpaRepo.save(entity);
 
         assertThatThrownBy(() -> adapter.findMatching(
-                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty()))
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.empty()))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("min");
     }
@@ -184,7 +192,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         jpaRepo.save(entity);
 
         assertThatThrownBy(() -> adapter.findMatching(
-                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty()))
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.empty()))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("CHARGEType003");
     }
@@ -205,7 +214,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         jpaRepo.save(entity);
 
         assertThatThrownBy(() -> adapter.findMatching(
-                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty()))
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.empty()))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("amount");
     }
@@ -232,7 +242,7 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
     @Test
     void savesAndRetrievesFeeRule() {
         var details = new FeeRuleDetails(
-                null, "DOMESTIC", "FPS", "BorneByDebtor", null,
+                null, "DOMESTIC", "FPS", "BorneByDebtor", null, null,
                 "CHARGEType001", "FLAT", new BigDecimal("2.50"), null,
                 null, null, null, "GBP", true, 0,
                 null, null, null, null);
@@ -332,7 +342,7 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
     @Test
     void savesAndRetrievesCapsViaAdapter() {
         var details = new FeeRuleDetails(
-                null, "DOMESTIC", "FPS", "BorneByDebtor", null,
+                null, "DOMESTIC", "FPS", "BorneByDebtor", null, null,
                 "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
                 new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP", true, 0,
                 null, null, null, null);
@@ -353,7 +363,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         jpaRepo.saveAndFlush(e);
 
         List<FeeRule> rules = adapter.findMatching(
-                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty());
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.empty());
 
         assertThat(rules).hasSize(1);
         assertThat(rules.get(0).getMinFee()).hasValueSatisfying(v -> assertThat(v).isEqualByComparingTo("1.00"));

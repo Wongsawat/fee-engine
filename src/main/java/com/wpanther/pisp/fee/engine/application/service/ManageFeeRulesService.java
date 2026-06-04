@@ -25,7 +25,8 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
     public FeeRuleDetails create(CreateCommand command) {
         var details = new FeeRuleDetails(
                 null, command.paymentType(), command.scheme(), command.chargeBearer(),
-                command.accountIdentification(), command.chargeType(), command.feeType(),
+                command.accountIdentification(), command.destinationCountry(),
+                command.chargeType(), command.feeType(),
                 command.flatAmount(), command.percentage(),
                 command.minFee(), command.maxFee(),
                 command.tiers(), command.currency(),
@@ -43,7 +44,8 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
         }
         var updated = new FeeRuleDetails(
                 existing.id(), command.paymentType(), command.scheme(), command.chargeBearer(),
-                command.accountIdentification(), command.chargeType(), command.feeType(),
+                command.accountIdentification(), command.destinationCountry(),
+                command.chargeType(), command.feeType(),
                 command.flatAmount(), command.percentage(),
                 command.minFee(), command.maxFee(),
                 command.tiers(), command.currency(),
@@ -76,7 +78,8 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
         }
         var toggled = new FeeRuleDetails(
                 existing.id(), existing.paymentType(), existing.scheme(), existing.chargeBearer(),
-                existing.accountIdentification(), existing.chargeType(), existing.feeType(),
+                existing.accountIdentification(), existing.destinationCountry(),
+                existing.chargeType(), existing.feeType(),
                 existing.flatAmount(), existing.percentage(),
                 existing.minFee(), existing.maxFee(),
                 existing.tiers(), existing.currency(),

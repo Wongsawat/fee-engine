@@ -26,11 +26,11 @@ class DryRunFeeCalculationServiceTest {
     @Test
     void dryRunFlatRuleProducesCharge() {
         FeeRule rule = new FeeRule("CHARGEType001", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("1.50"), null, null, null, List.of(), "GBP");
+                new BigDecimal("1.50"), null, null, null, List.of(), "GBP", null);
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
-                new AccountRef("SortCodeAccountNumber", "123"), null);
+                new AccountRef("SortCodeAccountNumber", "123"), null, null);
 
         List<Charge> charges = service.dryRun(new DryRunFeeCalculationUseCase.DryRunCommand(rule, request));
 
@@ -42,11 +42,11 @@ class DryRunFeeCalculationServiceTest {
     @Test
     void dryRunFreeRuleProducesZeroCharge() {
         FeeRule rule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP");
+                null, null, null, null, List.of(), "GBP", null);
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
-                new AccountRef("SortCodeAccountNumber", "123"), null);
+                new AccountRef("SortCodeAccountNumber", "123"), null, null);
 
         List<Charge> charges = service.dryRun(new DryRunFeeCalculationUseCase.DryRunCommand(rule, request));
 
@@ -57,7 +57,7 @@ class DryRunFeeCalculationServiceTest {
     @Test
     void dryRunReturnsEmptyWhenNoPaymentContext() {
         FeeRule rule = new FeeRule("CHARGEType001", ChargeBearer.BorneByDebtor, FeeType.FLAT,
-                new BigDecimal("1.50"), null, null, null, List.of(), "GBP");
+                new BigDecimal("1.50"), null, null, null, List.of(), "GBP", null);
 
         List<Charge> charges = service.dryRun(new DryRunFeeCalculationUseCase.DryRunCommand(rule, null));
 
@@ -67,11 +67,11 @@ class DryRunFeeCalculationServiceTest {
     @Test
     void dryRunPercentageRuleProducesCorrectCharge() {
         FeeRule rule = new FeeRule("CHARGEType002", ChargeBearer.BorneByDebtor, FeeType.PERCENTAGE,
-                null, new BigDecimal("0.01"), null, null, List.of(), "GBP");
+                null, new BigDecimal("0.01"), null, null, List.of(), "GBP", null);
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("200.00"), "GBP"),
-                new AccountRef("SortCodeAccountNumber", "123"), null);
+                new AccountRef("SortCodeAccountNumber", "123"), null, null);
 
         List<Charge> charges = service.dryRun(new DryRunFeeCalculationUseCase.DryRunCommand(rule, request));
 
@@ -82,11 +82,11 @@ class DryRunFeeCalculationServiceTest {
     @Test
     void dryRunPercentageRuleAppliesMaxCap() {
         FeeRule rule = new FeeRule("CHARGEType002", ChargeBearer.BorneByDebtor, FeeType.PERCENTAGE,
-                null, new BigDecimal("0.01"), null, new BigDecimal("5.00"), List.of(), "GBP");
+                null, new BigDecimal("0.01"), null, new BigDecimal("5.00"), List.of(), "GBP", null);
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("1000.00"), "GBP"),
-                new AccountRef("SortCodeAccountNumber", "123"), null);
+                new AccountRef("SortCodeAccountNumber", "123"), null, null);
 
         List<Charge> charges = service.dryRun(new DryRunFeeCalculationUseCase.DryRunCommand(rule, request));
 

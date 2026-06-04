@@ -20,10 +20,10 @@ class TieredFeeRuleTest extends DroolsTestSupport {
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.BACS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("500.00"), "GBP"),
-                new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null, null);
 
         FeeRule rule = new FeeRule("CHARGEType003", ChargeBearer.BorneByDebtor, FeeType.TIERED,
-                null, null, null, null, TIERS, "GBP");
+                null, null, null, null, TIERS, "GBP", null);
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -36,10 +36,10 @@ class TieredFeeRuleTest extends DroolsTestSupport {
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.BACS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("5000.00"), "GBP"),
-                new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null, null);
 
         FeeRule rule = new FeeRule("CHARGEType003", ChargeBearer.BorneByDebtor, FeeType.TIERED,
-                null, null, null, null, TIERS, "GBP");
+                null, null, null, null, TIERS, "GBP", null);
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -52,10 +52,10 @@ class TieredFeeRuleTest extends DroolsTestSupport {
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.BACS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("1000.00"), "GBP"),
-                new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null, null);
 
         FeeRule rule = new FeeRule("CHARGEType003", ChargeBearer.BorneByDebtor, FeeType.TIERED,
-                null, null, null, null, TIERS, "GBP");
+                null, null, null, null, TIERS, "GBP", null);
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -70,10 +70,10 @@ class TieredFeeRuleTest extends DroolsTestSupport {
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.BACS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("600.00"), "GBP"),
-                new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null, null);
 
         FeeRule rule = new FeeRule("CHARGEType003", ChargeBearer.BorneByDebtor, FeeType.TIERED,
-                null, null, null, null, gappedTiers, "GBP");
+                null, null, null, null, gappedTiers, "GBP", null);
 
         List<Charge> charges = fireRules(request, List.of(rule));
 

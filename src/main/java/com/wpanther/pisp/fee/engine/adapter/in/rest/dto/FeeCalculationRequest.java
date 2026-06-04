@@ -12,7 +12,8 @@ public record FeeCalculationRequest(
     @NotBlank String chargeBearer,
     @NotNull @Valid AmountDto instructedAmount,
     @Valid AccountDto debtorAccount,
-    @Valid AccountDto creditorAccount
+    @Valid AccountDto creditorAccount,
+    String destinationCountry
 ) {
     public record AmountDto(@NotNull @Positive BigDecimal amount, @NotBlank String currency) {}
     public record AccountDto(@NotBlank String schemeName, @NotBlank String identification) {}

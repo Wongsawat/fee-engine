@@ -12,7 +12,8 @@ public interface ManageFeeRulesUseCase {
 
     record CreateCommand(
         String paymentType, String scheme, String chargeBearer,
-        String accountIdentification, String chargeType, String feeType,
+        String accountIdentification, String destinationCountry,
+        String chargeType, String feeType,
         BigDecimal flatAmount, BigDecimal percentage,
         BigDecimal minFee, BigDecimal maxFee,
         List<FeeRuleDetails.TierInfo> tiers, String currency
@@ -21,7 +22,8 @@ public interface ManageFeeRulesUseCase {
     record UpdateCommand(
         UUID id,
         String paymentType, String scheme, String chargeBearer,
-        String accountIdentification, String chargeType, String feeType,
+        String accountIdentification, String destinationCountry,
+        String chargeType, String feeType,
         BigDecimal flatAmount, BigDecimal percentage,
         BigDecimal minFee, BigDecimal maxFee,
         List<FeeRuleDetails.TierInfo> tiers, String currency, long version

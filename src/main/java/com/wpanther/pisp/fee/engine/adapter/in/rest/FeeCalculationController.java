@@ -33,7 +33,8 @@ public class FeeCalculationController {
                 Optional.ofNullable(request.debtorAccount())
                         .map(a -> new AccountRef(a.schemeName(), a.identification())),
                 Optional.ofNullable(request.creditorAccount())
-                        .map(a -> new AccountRef(a.schemeName(), a.identification())));
+                        .map(a -> new AccountRef(a.schemeName(), a.identification())),
+                Optional.ofNullable(request.destinationCountry()));
 
         var charges = calculateFeesUseCase.calculate(command);
 

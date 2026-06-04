@@ -11,7 +11,7 @@ class FeeRuleTest {
 
     private FeeRule rule(BigDecimal minFee, BigDecimal maxFee) {
         return new FeeRule("CHARGEType002", ChargeBearer.BorneByDebtor, FeeType.PERCENTAGE,
-                null, new BigDecimal("0.01"), minFee, maxFee, List.of(), "GBP");
+                null, new BigDecimal("0.01"), minFee, maxFee, List.of(), "GBP", null);
     }
 
     @Test

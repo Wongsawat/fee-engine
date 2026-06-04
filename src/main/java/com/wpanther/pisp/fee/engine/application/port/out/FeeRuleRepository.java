@@ -11,6 +11,7 @@ import java.util.UUID;
 public interface FeeRuleRepository {
     List<FeeRule> findMatching(PaymentType paymentType, PaymentScheme scheme,
                                ChargeBearer chargeBearer, String currency,
+                               Optional<String> destinationCountry,
                                Optional<String> accountIdentification);
 
     FeeRuleDetails save(FeeRuleDetails details);

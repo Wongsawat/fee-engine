@@ -14,11 +14,12 @@ public final class FeeRule {
     private final BigDecimal maxFee;
     private final List<Tier> tiers;
     private final String currency;
+    private final String destinationCountry;
 
     public FeeRule(String chargeType, ChargeBearer chargeBearer, FeeType feeType,
                    BigDecimal flatAmount, BigDecimal percentage,
                    BigDecimal minFee, BigDecimal maxFee,
-                   List<Tier> tiers, String currency) {
+                   List<Tier> tiers, String currency, String destinationCountry) {
         this.chargeType = chargeType;
         this.chargeBearer = chargeBearer;
         this.feeType = feeType;
@@ -28,6 +29,7 @@ public final class FeeRule {
         this.maxFee = maxFee;
         this.tiers = tiers == null ? List.of() : List.copyOf(tiers);
         this.currency = currency;
+        this.destinationCountry = destinationCountry;
     }
 
     public BigDecimal applyBounds(BigDecimal fee) {
@@ -37,13 +39,14 @@ public final class FeeRule {
         return result;
     }
 
-    public String getChargeType()                { return chargeType; }
-    public ChargeBearer getChargeBearer()        { return chargeBearer; }
-    public FeeType getFeeType()                  { return feeType; }
-    public Optional<BigDecimal> getFlatAmount()  { return Optional.ofNullable(flatAmount); }
-    public Optional<BigDecimal> getPercentage()  { return Optional.ofNullable(percentage); }
-    public Optional<BigDecimal> getMinFee()      { return Optional.ofNullable(minFee); }
-    public Optional<BigDecimal> getMaxFee()      { return Optional.ofNullable(maxFee); }
-    public List<Tier> getTiers()                 { return tiers; }
-    public String getCurrency()                  { return currency; }
+    public String getChargeType()                        { return chargeType; }
+    public ChargeBearer getChargeBearer()                { return chargeBearer; }
+    public FeeType getFeeType()                          { return feeType; }
+    public Optional<BigDecimal> getFlatAmount()          { return Optional.ofNullable(flatAmount); }
+    public Optional<BigDecimal> getPercentage()          { return Optional.ofNullable(percentage); }
+    public Optional<BigDecimal> getMinFee()              { return Optional.ofNullable(minFee); }
+    public Optional<BigDecimal> getMaxFee()              { return Optional.ofNullable(maxFee); }
+    public List<Tier> getTiers()                         { return tiers; }
+    public String getCurrency()                          { return currency; }
+    public Optional<String> getDestinationCountry()      { return Optional.ofNullable(destinationCountry); }
 }

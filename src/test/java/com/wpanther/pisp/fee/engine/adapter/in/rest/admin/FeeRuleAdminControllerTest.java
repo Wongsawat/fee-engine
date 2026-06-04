@@ -34,7 +34,7 @@ class FeeRuleAdminControllerTest {
     private static final UUID RULE_ID = UUID.randomUUID();
 
     private FeeRuleDetails testDetails() {
-        return new FeeRuleDetails(RULE_ID, "DOMESTIC", "FPS", "BorneByDebtor", null,
+        return new FeeRuleDetails(RULE_ID, "DOMESTIC", "FPS", "BorneByDebtor", null, null,
                 "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP",
                 true, 0, Instant.now(), "system", Instant.now(), "system");
     }
@@ -172,7 +172,7 @@ class FeeRuleAdminControllerTest {
 
     @Test
     void createCappedPercentageRuleReturnsCaps() throws Exception {
-        var capped = new FeeRuleDetails(RULE_ID, "DOMESTIC", "FPS", "BorneByDebtor", null,
+        var capped = new FeeRuleDetails(RULE_ID, "DOMESTIC", "FPS", "BorneByDebtor", null, null,
                 "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
                 new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP",
                 true, 0, Instant.now(), "system", Instant.now(), "system");

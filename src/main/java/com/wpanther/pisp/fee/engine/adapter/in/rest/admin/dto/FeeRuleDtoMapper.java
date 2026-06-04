@@ -14,7 +14,8 @@ public class FeeRuleDtoMapper {
     public FeeRuleResponse toResponse(FeeRuleDetails details) {
         return new FeeRuleResponse(
                 details.id(), details.paymentType(), details.scheme(), details.chargeBearer(),
-                details.accountIdentification(), details.chargeType(), details.feeType(),
+                details.accountIdentification(), details.destinationCountry(),
+                details.chargeType(), details.feeType(),
                 details.flatAmount(), details.percentage(),
                 details.minFee(), details.maxFee(),
                 toTierDtoList(details.tiers()), details.currency(),
@@ -31,7 +32,7 @@ public class FeeRuleDtoMapper {
                 FeeType.valueOf(request.feeType()),
                 request.flatAmount(), request.percentage(),
                 request.minFee(), request.maxFee(),
-                tiers, request.currency());
+                tiers, request.currency(), request.destinationCountry());
     }
 
     public FeeRequest toFeeRequest(DryRunRequest request) {
@@ -45,17 +46,20 @@ public class FeeRuleDtoMapper {
         AccountRef creditor = request.creditorAccount() != null
                 ? new AccountRef(request.creditorAccount().schemeName(), request.creditorAccount().identification())
                 : null;
+        // null is intentional — destinationCountry is not part of the Drools session input;
+        // matching is done in Java before the session fires (dry-run bypasses matching entirely).
         return new FeeRequest(
                 PaymentType.valueOf(request.rule().paymentType()),
                 PaymentScheme.valueOf(request.rule().scheme()),
                 ChargeBearer.valueOf(request.rule().chargeBearer()),
-                instructedAmount, debtor, creditor);
+                instructedAmount, debtor, creditor, null);
     }
 
     public ManageFeeRulesUseCase.CreateCommand toCreateCommand(CreateFeeRuleRequest request) {
         return new ManageFeeRulesUseCase.CreateCommand(
                 request.paymentType(), request.scheme(), request.chargeBearer(),
-                request.accountIdentification(), request.chargeType(), request.feeType(),
+                request.accountIdentification(), request.destinationCountry(),
+                request.chargeType(), request.feeType(),
                 request.flatAmount(), request.percentage(),
                 request.minFee(), request.maxFee(),
                 toTierInfoList(request.tiers()), request.currency());
@@ -64,7 +68,8 @@ public class FeeRuleDtoMapper {
     public ManageFeeRulesUseCase.UpdateCommand toUpdateCommand(UpdateFeeRuleRequest request, java.util.UUID id) {
         return new ManageFeeRulesUseCase.UpdateCommand(
                 id, request.paymentType(), request.scheme(), request.chargeBearer(),
-                request.accountIdentification(), request.chargeType(), request.feeType(),
+                request.accountIdentification(), request.destinationCountry(),
+                request.chargeType(), request.feeType(),
                 request.flatAmount(), request.percentage(),
                 request.minFee(), request.maxFee(),
                 toTierInfoList(request.tiers()), request.currency(), request.version());

@@ -14,6 +14,7 @@ public record UpdateFeeRuleRequest(
     @NotBlank String scheme,
     @NotBlank String chargeBearer,
     String accountIdentification,
+    String destinationCountry,
     @NotBlank String chargeType,
     @NotBlank String feeType,
     BigDecimal flatAmount,

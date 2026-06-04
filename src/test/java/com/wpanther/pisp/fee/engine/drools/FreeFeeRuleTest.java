@@ -16,10 +16,10 @@ class FreeFeeRuleTest extends DroolsTestSupport {
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
-                new AccountRef("SortCodeAccountNumber", "12345678901234"), null);
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null, null);
 
         FeeRule rule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP");
+                null, null, null, null, List.of(), "GBP", null);
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -38,10 +38,10 @@ class FreeFeeRuleTest extends DroolsTestSupport {
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByCreditor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
-                null, new AccountRef("SortCodeAccountNumber", "98765432109876"));
+                null, new AccountRef("SortCodeAccountNumber", "98765432109876"), null);
 
         FeeRule rule = new FeeRule("CHARGEType004", ChargeBearer.BorneByCreditor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP");
+                null, null, null, null, List.of(), "GBP", null);
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -60,10 +60,10 @@ class FreeFeeRuleTest extends DroolsTestSupport {
         FeeRequest request = new FeeRequest(
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 new InstructedAmount(new BigDecimal("100.00"), "GBP"),
-                null, null);
+                null, null, null);
 
         FeeRule rule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP");
+                null, null, null, null, List.of(), "GBP", null);
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
