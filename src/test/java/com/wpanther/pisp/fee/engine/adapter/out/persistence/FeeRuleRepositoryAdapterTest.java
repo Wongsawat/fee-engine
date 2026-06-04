@@ -319,4 +319,35 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         assertThat(found.getMinFee()).isEqualByComparingTo("1.00");
         assertThat(found.getMaxFee()).isEqualByComparingTo("50.00");
     }
+
+    @Test
+    void savesAndRetrievesCapsViaAdapter() {
+        var details = new FeeRuleDetails(
+                null, "DOMESTIC", "FPS", "BorneByDebtor", null,
+                "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
+                new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP", true, 0,
+                null, null, null, null);
+
+        FeeRuleDetails saved = adapter.save(details);
+        var found = adapter.findById(saved.id());
+
+        assertThat(found).isPresent();
+        assertThat(found.get().minFee()).isEqualByComparingTo("1.00");
+        assertThat(found.get().maxFee()).isEqualByComparingTo("50.00");
+    }
+
+    @Test
+    void findMatchingReturnsCapsOnDomainRule() {
+        var e = FeeRuleEntityFixtures.percentageFeeRule("DOMESTIC", "FPS", "BorneByDebtor");
+        e.setMinFee(new BigDecimal("1.00"));
+        e.setMaxFee(new BigDecimal("50.00"));
+        jpaRepo.saveAndFlush(e);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor, "GBP", Optional.empty());
+
+        assertThat(rules).hasSize(1);
+        assertThat(rules.get(0).getMinFee()).hasValueSatisfying(v -> assertThat(v).isEqualByComparingTo("1.00"));
+        assertThat(rules.get(0).getMaxFee()).hasValueSatisfying(v -> assertThat(v).isEqualByComparingTo("50.00"));
+    }
 }

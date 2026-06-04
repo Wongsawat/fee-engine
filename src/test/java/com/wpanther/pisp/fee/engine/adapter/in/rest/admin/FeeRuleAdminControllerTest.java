@@ -169,4 +169,55 @@ class FeeRuleAdminControllerTest {
                             """))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void createCappedPercentageRuleReturnsCaps() throws Exception {
+        var capped = new FeeRuleDetails(RULE_ID, "DOMESTIC", "FPS", "BorneByDebtor", null,
+                "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
+                new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP",
+                true, 0, Instant.now(), "system", Instant.now(), "system");
+        when(manageFeeRulesUseCase.create(any())).thenReturn(capped);
+
+        mockMvc.perform(post("/admin/fee-rules")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client"))
+                                .authorities(() -> "SCOPE_fee-rules:write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "BorneByDebtor",
+                              "chargeType": "CHARGEType002",
+                              "feeType": "PERCENTAGE",
+                              "percentage": 0.01,
+                              "minFee": 1.00,
+                              "maxFee": 50.00,
+                              "currency": "GBP"
+                            }
+                            """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.minFee").value(1.0))
+                .andExpect(jsonPath("$.maxFee").value(50.0));
+    }
+
+    @Test
+    void rejectsCapsOnFlatRule() throws Exception {
+        mockMvc.perform(post("/admin/fee-rules")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client"))
+                                .authorities(() -> "SCOPE_fee-rules:write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "BorneByDebtor",
+                              "chargeType": "CHARGEType001",
+                              "feeType": "FLAT",
+                              "flatAmount": 1.50,
+                              "minFee": 1.00,
+                              "currency": "GBP"
+                            }
+                            """))
+                .andExpect(status().isBadRequest());
+    }
 }

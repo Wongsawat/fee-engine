@@ -160,4 +160,52 @@ class ManageFeeRulesServiceTest {
         assertThatThrownBy(() -> service.toggleStatus(ruleId, false, 0L))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
+
+    private FeeRuleDetails percentageDetailsWithCaps() {
+        return new FeeRuleDetails(ruleId, "DOMESTIC", "FPS", "BorneByDebtor", null,
+                "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
+                new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP",
+                true, 0, Instant.now(), "system", Instant.now(), "system");
+    }
+
+    @Test
+    void createPassesCapsToRepository() {
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        var cmd = new ManageFeeRulesUseCase.CreateCommand(
+                "DOMESTIC", "FPS", "BorneByDebtor", null, "CHARGEType002", "PERCENTAGE",
+                null, new BigDecimal("0.01"), new BigDecimal("1.00"), new BigDecimal("50.00"),
+                null, "GBP");
+
+        FeeRuleDetails result = service.create(cmd);
+
+        assertThat(result.minFee()).isEqualByComparingTo("1.00");
+        assertThat(result.maxFee()).isEqualByComparingTo("50.00");
+    }
+
+    @Test
+    void updateChangesCaps() {
+        when(repository.findById(ruleId)).thenReturn(Optional.of(percentageDetailsWithCaps()));
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        var cmd = new ManageFeeRulesUseCase.UpdateCommand(
+                ruleId, "DOMESTIC", "FPS", "BorneByDebtor", null, "CHARGEType002", "PERCENTAGE",
+                null, new BigDecimal("0.01"), new BigDecimal("2.00"), new BigDecimal("80.00"),
+                null, "GBP", 0L);
+
+        FeeRuleDetails result = service.update(cmd);
+
+        assertThat(result.minFee()).isEqualByComparingTo("2.00");
+        assertThat(result.maxFee()).isEqualByComparingTo("80.00");
+    }
+
+    @Test
+    void toggleStatusPreservesCaps() {
+        when(repository.findById(ruleId)).thenReturn(Optional.of(percentageDetailsWithCaps()));
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        FeeRuleDetails result = service.toggleStatus(ruleId, false, 0L);
+
+        assertThat(result.active()).isFalse();
+        assertThat(result.minFee()).isEqualByComparingTo("1.00");
+        assertThat(result.maxFee()).isEqualByComparingTo("50.00");
+    }
 }
