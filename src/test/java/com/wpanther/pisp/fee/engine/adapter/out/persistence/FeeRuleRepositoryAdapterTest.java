@@ -359,4 +359,54 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         assertThat(rules.get(0).getMinFee()).hasValueSatisfying(v -> assertThat(v).isEqualByComparingTo("1.00"));
         assertThat(rules.get(0).getMaxFee()).hasValueSatisfying(v -> assertThat(v).isEqualByComparingTo("50.00"));
     }
+
+    @Test
+    void rejectsLowercaseDestinationCountry() {
+        var entity = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        entity.setDestinationCountry("in");
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void rejectsThreeLetterDestinationCountry() {
+        var entity = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        entity.setDestinationCountry("GBR");
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void rejectsDestinationCountryOnDomesticRule() {
+        var entity = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
+        entity.setDestinationCountry("IN");
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void rejectsDuplicateActiveCountryRule() {
+        var first = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", "ACC1");
+        first.setDestinationCountry("IN");
+        jpaRepo.saveAndFlush(first);
+
+        var second = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", "ACC1");
+        second.setDestinationCountry("IN");
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(second))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void acceptsValidDestinationCountryOnInternationalRule() {
+        var entity = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", null);
+        entity.setDestinationCountry("IN");
+        jpaRepo.saveAndFlush(entity);
+
+        var found = jpaRepo.findById(entity.getId()).orElseThrow();
+        assertThat(found.getDestinationCountry()).isEqualTo("IN");
+    }
 }

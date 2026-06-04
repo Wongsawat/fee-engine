@@ -24,6 +24,7 @@ public class FeeRuleEntity {
     @Column(name = "scheme", nullable = false) private String scheme;
     @Column(name = "charge_bearer", nullable = false) private String chargeBearer;
     @Column(name = "account_identification") private String accountIdentification;
+    @Column(name = "destination_country") private String destinationCountry;
     @Column(name = "charge_type", nullable = false) private String chargeType;
     @Column(name = "fee_type", nullable = false) private String feeType;
     @Column(name = "flat_amount") private BigDecimal flatAmount;
@@ -66,6 +67,8 @@ public class FeeRuleEntity {
     public void setChargeBearer(String v) { this.chargeBearer = v; }
     public String getAccountIdentification() { return accountIdentification; }
     public void setAccountIdentification(String v) { this.accountIdentification = v; }
+    public String getDestinationCountry() { return destinationCountry; }
+    public void setDestinationCountry(String v) { this.destinationCountry = v; }
     public String getChargeType() { return chargeType; }
     public void setChargeType(String v) { this.chargeType = v; }
     public String getFeeType() { return feeType; }
