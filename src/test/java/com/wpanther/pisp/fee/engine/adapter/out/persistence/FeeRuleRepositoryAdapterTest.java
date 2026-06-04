@@ -532,4 +532,48 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         assertThat(rules).hasSize(1);
         assertThat(rules.get(0).getChargeType()).isEqualTo("ACCOUNT_RULE");
     }
+
+    @Test
+    void rejectsNegativePriority() {
+        var entity = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
+        entity.setPriority(-1);
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void rejectsDuplicateActiveRuleForSameChargeType() {
+        var first = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
+        first.setPriority(10);
+        jpaRepo.saveAndFlush(first);
+
+        var second = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
+        second.setPriority(5);
+        // same chargeType (CHARGEType001), same dimensions, both active — must conflict
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(second))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void acceptsDifferentChargeTypesForSameDimensions() {
+        var first = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
+        jpaRepo.saveAndFlush(first);
+
+        var second = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
+        second.setChargeType("PROCESSING_FEE");
+        jpaRepo.saveAndFlush(second);
+        // Two different chargeTypes for same dimensions — allowed
+        assertThat(jpaRepo.findAll()).hasSizeGreaterThanOrEqualTo(2);
+    }
+
+    @Test
+    void savesAndRetrievesPriority() {
+        var entity = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
+        entity.setPriority(42);
+        jpaRepo.saveAndFlush(entity);
+
+        var found = jpaRepo.findById(entity.getId()).orElseThrow();
+        assertThat(found.getPriority()).isEqualTo(42);
+    }
 }

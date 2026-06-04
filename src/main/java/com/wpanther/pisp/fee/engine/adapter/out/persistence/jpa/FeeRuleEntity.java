@@ -34,6 +34,7 @@ public class FeeRuleEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb") private JsonNode tiers;
     @Column(name = "currency", nullable = false) private String currency;
+    @Column(name = "priority", nullable = false) private int priority;
     @Column(name = "active", nullable = false) private boolean active;
     @Version
     @Column(name = "version", nullable = false)
@@ -85,6 +86,8 @@ public class FeeRuleEntity {
     public void setTiers(JsonNode v) { this.tiers = v; }
     public String getCurrency() { return currency; }
     public void setCurrency(String v) { this.currency = v; }
+    public int getPriority() { return priority; }
+    public void setPriority(int v) { this.priority = v; }
     public boolean isActive() { return active; }
     public void setActive(boolean v) { this.active = v; }
     public long getVersion() { return version; }
