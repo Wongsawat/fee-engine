@@ -24,6 +24,8 @@ public class FeeRuleRequestValidator implements ConstraintValidator<ValidFeeRule
 
         if (!validateDestinationCountry(req)) return false;
 
+        if (req.priority() != null && req.priority() < 0) return false;
+
         return switch (req.feeType()) {
             case "FLAT" -> validateFlat(req) && capsAbsent(req);
             case "PERCENTAGE" -> validatePercentage(req) && validateCaps(req);

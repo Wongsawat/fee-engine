@@ -219,4 +219,36 @@ class FeeRuleRequestValidatorTest {
                 null, null, null, null, "EUR", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
+
+    @Test
+    void negativePriorityIsInvalid() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"),
+                null, null, null, null, "GBP", -1);
+        assertThat(validator.isValid(request, context)).isFalse();
+    }
+
+    @Test
+    void nullPriorityIsValid() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"),
+                null, null, null, null, "GBP", null);
+        assertThat(validator.isValid(request, context)).isTrue();
+    }
+
+    @Test
+    void zeroPriorityIsValid() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"),
+                null, null, null, null, "GBP", 0);
+        assertThat(validator.isValid(request, context)).isTrue();
+    }
+
+    @Test
+    void positivePriorityIsValid() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"),
+                null, null, null, null, "GBP", 100);
+        assertThat(validator.isValid(request, context)).isTrue();
+    }
 }
