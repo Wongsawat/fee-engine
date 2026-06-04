@@ -507,4 +507,24 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         assertThat(rules).hasSize(1);
         assertThat(rules.get(0).getChargeType()).isEqualTo("LEVEL1");
     }
+
+    @Test
+    void accountOnlyRuleWinsOverAnyAccountRule() {
+        // Level 3: country=any, account=ACC1
+        var accountRule = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", "ACC1");
+        accountRule.setChargeType("ACCOUNT_RULE");
+        jpaRepo.saveAndFlush(accountRule);
+
+        // Level 4: country=any, account=any
+        var anyAccountRule = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", null);
+        anyAccountRule.setChargeType("ANY_ACCOUNT_RULE");
+        jpaRepo.saveAndFlush(anyAccountRule);
+
+        List<FeeRule> rules = adapter.findMatching(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                "GBP", Optional.empty(), Optional.of("ACC1"));
+
+        assertThat(rules).hasSize(1);
+        assertThat(rules.get(0).getChargeType()).isEqualTo("ACCOUNT_RULE");
+    }
 }
