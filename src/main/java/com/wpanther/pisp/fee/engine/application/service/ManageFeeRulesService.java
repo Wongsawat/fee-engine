@@ -30,7 +30,7 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
                 command.flatAmount(), command.percentage(),
                 command.minFee(), command.maxFee(),
                 command.tiers(), command.currency(),
-                true, 0, null, null, null, null);
+                command.priority(), true, 0, null, null, null, null);
         return feeRuleRepository.save(details);
     }
 
@@ -49,7 +49,7 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
                 command.flatAmount(), command.percentage(),
                 command.minFee(), command.maxFee(),
                 command.tiers(), command.currency(),
-                existing.active(), existing.version(),
+                command.priority(), existing.active(), existing.version(),
                 existing.createdAt(), existing.createdBy(), existing.updatedAt(), existing.updatedBy());
         return feeRuleRepository.save(updated);
     }
@@ -83,7 +83,7 @@ public class ManageFeeRulesService implements ManageFeeRulesUseCase {
                 existing.flatAmount(), existing.percentage(),
                 existing.minFee(), existing.maxFee(),
                 existing.tiers(), existing.currency(),
-                active, existing.version(),
+                existing.priority(), active, existing.version(),
                 existing.createdAt(), existing.createdBy(), existing.updatedAt(), existing.updatedBy());
         return feeRuleRepository.save(toggled);
     }

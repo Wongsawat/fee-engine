@@ -23,7 +23,7 @@ import java.util.UUID;
 public class FeeRuleAdminController {
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
-            "createdAt", "updatedAt", "paymentType", "scheme", "chargeBearer", "feeType", "currency");
+            "createdAt", "updatedAt", "paymentType", "scheme", "chargeBearer", "feeType", "currency", "priority");
 
     private final ManageFeeRulesUseCase manageFeeRulesUseCase;
     private final FeeRuleDtoMapper mapper;

@@ -18,42 +18,42 @@ class FeeRuleRequestValidatorTest {
     @Test
     void validFlatRule() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP");
+                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 
     @Test
     void flatRuleWithoutAmountIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType001", "FLAT", null, null, null, null, null, "GBP");
+                null, null, "CHARGEType001", "FLAT", null, null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
     @Test
     void flatRuleWithZeroAmountIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType001", "FLAT", BigDecimal.ZERO, null, null, null, null, "GBP");
+                null, null, "CHARGEType001", "FLAT", BigDecimal.ZERO, null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
     @Test
     void validPercentageRule() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.002"), null, null, null, "GBP");
+                null, null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.002"), null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 
     @Test
     void percentageOverOneIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("1.5"), null, null, null, "GBP");
+                null, null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("1.5"), null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
     @Test
     void percentageWithoutRateIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType002", "PERCENTAGE", null, null, null, null, null, "GBP");
+                null, null, "CHARGEType002", "PERCENTAGE", null, null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -61,14 +61,14 @@ class FeeRuleRequestValidatorTest {
     void validTieredRule() {
         var tiers = List.of(new TierDto(new BigDecimal("0"), new BigDecimal("1000"), new BigDecimal("0.50")));
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType003", "TIERED", null, null, null, null, tiers, "GBP");
+                null, null, "CHARGEType003", "TIERED", null, null, null, null, tiers, "GBP", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 
     @Test
     void tieredRuleWithoutTiersIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType003", "TIERED", null, null, null, null, null, "GBP");
+                null, null, "CHARGEType003", "TIERED", null, null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -76,42 +76,42 @@ class FeeRuleRequestValidatorTest {
     void tierWithMinGreaterOrEqualToMaxIsInvalid() {
         var tiers = List.of(new TierDto(new BigDecimal("1000"), new BigDecimal("100"), new BigDecimal("0.50")));
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType003", "TIERED", null, null, null, null, tiers, "GBP");
+                null, null, "CHARGEType003", "TIERED", null, null, null, null, tiers, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
     @Test
     void validFreeRule() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType004", "FREE", null, null, null, null, null, "GBP");
+                null, null, "CHARGEType004", "FREE", null, null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 
     @Test
     void freeRuleWithFlatAmountIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType004", "FREE", new BigDecimal("1.00"), null, null, null, null, "GBP");
+                null, null, "CHARGEType004", "FREE", new BigDecimal("1.00"), null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
     @Test
     void sharedChargeBearerIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "Shared",
-                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP");
+                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
     @Test
     void followingServiceLevelChargeBearerIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "FollowingServiceLevel",
-                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP");
+                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
     @Test
     void worksForUpdateFeeRuleRequest() {
         var request = new UpdateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP", 0L);
+                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP", null, 0L);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 
@@ -119,7 +119,7 @@ class FeeRuleRequestValidatorTest {
     void validPercentageRuleWithCaps() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
                 null, null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
-                new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP");
+                new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 
@@ -127,7 +127,7 @@ class FeeRuleRequestValidatorTest {
     void percentageRuleWithFloorOnlyIsValid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
                 null, null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
-                new BigDecimal("1.00"), null, null, "GBP");
+                new BigDecimal("1.00"), null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 
@@ -135,7 +135,7 @@ class FeeRuleRequestValidatorTest {
     void percentageWithMinGreaterThanMaxIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
                 null, null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
-                new BigDecimal("50.00"), new BigDecimal("1.00"), null, "GBP");
+                new BigDecimal("50.00"), new BigDecimal("1.00"), null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -143,7 +143,7 @@ class FeeRuleRequestValidatorTest {
     void percentageWithNonPositiveMinFeeIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
                 null, null, "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
-                BigDecimal.ZERO, null, null, "GBP");
+                BigDecimal.ZERO, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -151,7 +151,7 @@ class FeeRuleRequestValidatorTest {
     void flatRuleWithCapsIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
                 null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"), null,
-                new BigDecimal("1.00"), null, null, "GBP");
+                new BigDecimal("1.00"), null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -160,7 +160,7 @@ class FeeRuleRequestValidatorTest {
         var tiers = List.of(new TierDto(new BigDecimal("0"), new BigDecimal("1000"), new BigDecimal("0.50")));
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
                 null, null, "CHARGEType003", "TIERED", null, null,
-                null, new BigDecimal("5.00"), tiers, "GBP");
+                null, new BigDecimal("5.00"), tiers, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -168,7 +168,7 @@ class FeeRuleRequestValidatorTest {
     void freeRuleWithCapsIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
                 null, null, "CHARGEType004", "FREE", null, null,
-                new BigDecimal("1.00"), null, null, "GBP");
+                new BigDecimal("1.00"), null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -176,7 +176,7 @@ class FeeRuleRequestValidatorTest {
     void validInternationalRuleWithDestinationCountry() {
         var request = new CreateFeeRuleRequest("INTERNATIONAL", "SWIFT", "BorneByDebtor",
                 null, "IN", "CHARGEType001", "FLAT", new BigDecimal("1.50"),
-                null, null, null, null, "USD");
+                null, null, null, null, "USD", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 
@@ -184,7 +184,7 @@ class FeeRuleRequestValidatorTest {
     void rejectsLowercaseDestinationCountry() {
         var request = new CreateFeeRuleRequest("INTERNATIONAL", "SWIFT", "BorneByDebtor",
                 null, "in", "CHARGEType001", "FLAT", new BigDecimal("1.50"),
-                null, null, null, null, "USD");
+                null, null, null, null, "USD", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -192,7 +192,7 @@ class FeeRuleRequestValidatorTest {
     void rejectsThreeLetterDestinationCountry() {
         var request = new CreateFeeRuleRequest("INTERNATIONAL", "SWIFT", "BorneByDebtor",
                 null, "GBR", "CHARGEType001", "FLAT", new BigDecimal("1.50"),
-                null, null, null, null, "USD");
+                null, null, null, null, "USD", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -200,7 +200,7 @@ class FeeRuleRequestValidatorTest {
     void rejectsDestinationCountryOnDomesticRule() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
                 null, "IN", "CHARGEType001", "FLAT", new BigDecimal("1.50"),
-                null, null, null, null, "GBP");
+                null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -208,7 +208,7 @@ class FeeRuleRequestValidatorTest {
     void acceptsNullDestinationCountryOnDomesticRule() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
                 null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"),
-                null, null, null, null, "GBP");
+                null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 
@@ -216,7 +216,7 @@ class FeeRuleRequestValidatorTest {
     void acceptsDestinationCountryOnInternationalScheduledRule() {
         var request = new CreateFeeRuleRequest("INTERNATIONAL_SCHEDULED", "SWIFT", "BorneByDebtor",
                 null, "FR", "CHARGEType001", "FLAT", new BigDecimal("1.50"),
-                null, null, null, null, "EUR");
+                null, null, null, null, "EUR", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 }

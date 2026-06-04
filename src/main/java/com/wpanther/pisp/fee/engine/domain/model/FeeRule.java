@@ -15,11 +15,13 @@ public final class FeeRule {
     private final List<Tier> tiers;
     private final String currency;
     private final String destinationCountry;
+    private final int priority;
 
     public FeeRule(String chargeType, ChargeBearer chargeBearer, FeeType feeType,
                    BigDecimal flatAmount, BigDecimal percentage,
                    BigDecimal minFee, BigDecimal maxFee,
-                   List<Tier> tiers, String currency, String destinationCountry) {
+                   List<Tier> tiers, String currency, String destinationCountry,
+                   int priority) {
         this.chargeType = chargeType;
         this.chargeBearer = chargeBearer;
         this.feeType = feeType;
@@ -30,6 +32,7 @@ public final class FeeRule {
         this.tiers = tiers == null ? List.of() : List.copyOf(tiers);
         this.currency = currency;
         this.destinationCountry = destinationCountry;
+        this.priority = priority;
     }
 
     public BigDecimal applyBounds(BigDecimal fee) {
@@ -49,4 +52,5 @@ public final class FeeRule {
     public List<Tier> getTiers()                         { return tiers; }
     public String getCurrency()                          { return currency; }
     public Optional<String> getDestinationCountry()      { return Optional.ofNullable(destinationCountry); }
+    public int getPriority()                             { return priority; }
 }

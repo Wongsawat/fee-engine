@@ -81,6 +81,7 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
         entity.setMaxFee(details.maxFee());
         entity.setTiers(toJsonNode(details.tiers()));
         entity.setCurrency(details.currency());
+        entity.setPriority(details.priority());
         entity.setActive(details.active());
         return toDetails(jpaRepo.save(entity));
     }
@@ -121,7 +122,8 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
                 FeeType.valueOf(e.getFeeType()),
                 e.getFlatAmount(), e.getPercentage(),
                 e.getMinFee(), e.getMaxFee(),
-                tiers, e.getCurrency(), e.getDestinationCountry());
+                tiers, e.getCurrency(), e.getDestinationCountry(),
+                e.getPriority());
     }
 
     private FeeRuleDetails toDetails(FeeRuleEntity e) {
@@ -142,7 +144,7 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
                 e.getFlatAmount(), e.getPercentage(),
                 e.getMinFee(), e.getMaxFee(),
                 tiers, e.getCurrency(),
-                e.isActive(), e.getVersion(),
+                e.getPriority(), e.isActive(), e.getVersion(),
                 e.getCreatedAt(), e.getCreatedBy(), e.getUpdatedAt(), e.getUpdatedBy());
     }
 

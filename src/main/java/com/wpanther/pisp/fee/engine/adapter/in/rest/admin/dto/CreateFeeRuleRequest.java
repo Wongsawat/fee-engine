@@ -21,5 +21,6 @@ public record CreateFeeRuleRequest(
     BigDecimal minFee,
     BigDecimal maxFee,
     @Valid List<TierDto> tiers,
-    @NotBlank String currency
+    @NotBlank String currency,
+    Integer priority
 ) implements FeeRuleRequest {}

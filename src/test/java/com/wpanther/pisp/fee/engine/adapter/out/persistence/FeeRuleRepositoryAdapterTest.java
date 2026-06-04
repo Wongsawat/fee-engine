@@ -244,7 +244,7 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         var details = new FeeRuleDetails(
                 null, "DOMESTIC", "FPS", "BorneByDebtor", null, null,
                 "CHARGEType001", "FLAT", new BigDecimal("2.50"), null,
-                null, null, null, "GBP", true, 0,
+                null, null, null, "GBP", 0, true, 0,
                 null, null, null, null);
 
         FeeRuleDetails saved = adapter.save(details);
@@ -344,7 +344,7 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         var details = new FeeRuleDetails(
                 null, "DOMESTIC", "FPS", "BorneByDebtor", null, null,
                 "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
-                new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP", true, 0,
+                new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP", 0, true, 0,
                 null, null, null, null);
 
         FeeRuleDetails saved = adapter.save(details);

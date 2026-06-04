@@ -36,7 +36,7 @@ class FeeRuleAdminControllerTest {
     private FeeRuleDetails testDetails() {
         return new FeeRuleDetails(RULE_ID, "DOMESTIC", "FPS", "BorneByDebtor", null, null,
                 "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP",
-                true, 0, Instant.now(), "system", Instant.now(), "system");
+                0, true, 0, Instant.now(), "system", Instant.now(), "system");
     }
 
     @Test
@@ -175,7 +175,7 @@ class FeeRuleAdminControllerTest {
         var capped = new FeeRuleDetails(RULE_ID, "DOMESTIC", "FPS", "BorneByDebtor", null, null,
                 "CHARGEType002", "PERCENTAGE", null, new BigDecimal("0.01"),
                 new BigDecimal("1.00"), new BigDecimal("50.00"), null, "GBP",
-                true, 0, Instant.now(), "system", Instant.now(), "system");
+                0, true, 0, Instant.now(), "system", Instant.now(), "system");
         when(manageFeeRulesUseCase.create(any())).thenReturn(capped);
 
         mockMvc.perform(post("/admin/fee-rules")
@@ -224,7 +224,7 @@ class FeeRuleAdminControllerTest {
     private FeeRuleDetails internationalDetailsWithCountry() {
         return new FeeRuleDetails(RULE_ID, "INTERNATIONAL", "SWIFT", "BorneByDebtor", null, "IN",
                 "CHARGEType001", "FLAT", new BigDecimal("5.00"), null, null, null, null, "USD",
-                true, 0, Instant.now(), "system", Instant.now(), "system");
+                0, true, 0, Instant.now(), "system", Instant.now(), "system");
     }
 
     @Test

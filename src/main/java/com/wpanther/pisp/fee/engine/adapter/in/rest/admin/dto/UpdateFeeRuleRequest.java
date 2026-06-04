@@ -23,5 +23,6 @@ public record UpdateFeeRuleRequest(
     BigDecimal maxFee,
     @Valid List<TierDto> tiers,
     @NotBlank String currency,
+    Integer priority,
     @NotNull Long version
 ) implements FeeRuleRequest {}

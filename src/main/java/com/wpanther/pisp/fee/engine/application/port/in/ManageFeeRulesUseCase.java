@@ -16,7 +16,8 @@ public interface ManageFeeRulesUseCase {
         String chargeType, String feeType,
         BigDecimal flatAmount, BigDecimal percentage,
         BigDecimal minFee, BigDecimal maxFee,
-        List<FeeRuleDetails.TierInfo> tiers, String currency
+        List<FeeRuleDetails.TierInfo> tiers, String currency,
+        int priority
     ) {}
 
     record UpdateCommand(
@@ -26,7 +27,7 @@ public interface ManageFeeRulesUseCase {
         String chargeType, String feeType,
         BigDecimal flatAmount, BigDecimal percentage,
         BigDecimal minFee, BigDecimal maxFee,
-        List<FeeRuleDetails.TierInfo> tiers, String currency, long version
+        List<FeeRuleDetails.TierInfo> tiers, String currency, int priority, long version
     ) {}
 
     FeeRuleDetails create(CreateCommand command);

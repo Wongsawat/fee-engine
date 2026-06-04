@@ -20,6 +20,7 @@ public record FeeRuleResponse(
     BigDecimal maxFee,
     List<TierDto> tiers,
     String currency,
+    int priority,
     boolean active,
     long version,
     Instant createdAt,

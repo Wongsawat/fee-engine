@@ -20,6 +20,7 @@ public record FeeRuleDetails(
     BigDecimal maxFee,
     List<TierInfo> tiers,
     String currency,
+    int priority,
     boolean active,
     long version,
     Instant createdAt,

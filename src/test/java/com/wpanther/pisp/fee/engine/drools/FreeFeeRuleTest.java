@@ -19,7 +19,7 @@ class FreeFeeRuleTest extends DroolsTestSupport {
                 new AccountRef("SortCodeAccountNumber", "12345678901234"), null, null);
 
         FeeRule rule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP", null);
+                null, null, null, null, List.of(), "GBP", null, 0);
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -41,7 +41,7 @@ class FreeFeeRuleTest extends DroolsTestSupport {
                 null, new AccountRef("SortCodeAccountNumber", "98765432109876"), null);
 
         FeeRule rule = new FeeRule("CHARGEType004", ChargeBearer.BorneByCreditor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP", null);
+                null, null, null, null, List.of(), "GBP", null, 0);
 
         List<Charge> charges = fireRules(request, List.of(rule));
 
@@ -63,7 +63,7 @@ class FreeFeeRuleTest extends DroolsTestSupport {
                 null, null, null);
 
         FeeRule rule = new FeeRule("CHARGEType004", ChargeBearer.BorneByDebtor, FeeType.FREE,
-                null, null, null, null, List.of(), "GBP", null);
+                null, null, null, null, List.of(), "GBP", null, 0);
 
         List<Charge> charges = fireRules(request, List.of(rule));
 

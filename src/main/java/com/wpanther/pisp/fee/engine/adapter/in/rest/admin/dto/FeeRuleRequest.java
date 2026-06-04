@@ -13,4 +13,5 @@ public interface FeeRuleRequest {
     List<TierDto> tiers();
     String chargeBearer();
     String destinationCountry();
+    Integer priority();
 }

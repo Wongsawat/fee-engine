@@ -19,7 +19,7 @@ public class FeeRuleDtoMapper {
                 details.flatAmount(), details.percentage(),
                 details.minFee(), details.maxFee(),
                 toTierDtoList(details.tiers()), details.currency(),
-                details.active(), details.version(),
+                details.priority(), details.active(), details.version(),
                 details.createdAt(), details.createdBy(), details.updatedAt(), details.updatedBy());
     }
 
@@ -32,7 +32,8 @@ public class FeeRuleDtoMapper {
                 FeeType.valueOf(request.feeType()),
                 request.flatAmount(), request.percentage(),
                 request.minFee(), request.maxFee(),
-                tiers, request.currency(), request.destinationCountry());
+                tiers, request.currency(), request.destinationCountry(),
+                request.priority() != null ? request.priority() : 0);
     }
 
     public FeeRequest toFeeRequest(DryRunRequest request) {
@@ -62,7 +63,8 @@ public class FeeRuleDtoMapper {
                 request.chargeType(), request.feeType(),
                 request.flatAmount(), request.percentage(),
                 request.minFee(), request.maxFee(),
-                toTierInfoList(request.tiers()), request.currency());
+                toTierInfoList(request.tiers()), request.currency(),
+                request.priority() != null ? request.priority() : 0);
     }
 
     public ManageFeeRulesUseCase.UpdateCommand toUpdateCommand(UpdateFeeRuleRequest request, java.util.UUID id) {
@@ -72,7 +74,9 @@ public class FeeRuleDtoMapper {
                 request.chargeType(), request.feeType(),
                 request.flatAmount(), request.percentage(),
                 request.minFee(), request.maxFee(),
-                toTierInfoList(request.tiers()), request.currency(), request.version());
+                toTierInfoList(request.tiers()), request.currency(),
+                request.priority() != null ? request.priority() : 0,
+                request.version());
     }
 
     public List<FeeCalculationResponse.ChargeDto> toChargeDtos(List<Charge> charges) {
