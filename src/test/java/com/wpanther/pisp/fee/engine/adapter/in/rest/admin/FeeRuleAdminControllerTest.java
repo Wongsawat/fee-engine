@@ -271,4 +271,78 @@ class FeeRuleAdminControllerTest {
                             """))
                 .andExpect(status().isBadRequest());
     }
+
+    private FeeRuleDetails detailsWithPriority(int priority) {
+        return new FeeRuleDetails(RULE_ID, "DOMESTIC", "FPS", "BorneByDebtor", null, null,
+                "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP",
+                priority, true, 0, Instant.now(), "system", Instant.now(), "system");
+    }
+
+    @Test
+    void createRuleRoundTripsPriority() throws Exception {
+        when(manageFeeRulesUseCase.create(any())).thenReturn(detailsWithPriority(20));
+
+        mockMvc.perform(post("/admin/fee-rules")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client"))
+                                .authorities(() -> "SCOPE_fee-rules:write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "BorneByDebtor",
+                              "chargeType": "CHARGEType001",
+                              "feeType": "FLAT",
+                              "flatAmount": 1.50,
+                              "currency": "GBP",
+                              "priority": 20
+                            }
+                            """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.priority").value(20));
+    }
+
+    @Test
+    void rejectsNegativePriority() throws Exception {
+        mockMvc.perform(post("/admin/fee-rules")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client"))
+                                .authorities(() -> "SCOPE_fee-rules:write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "BorneByDebtor",
+                              "chargeType": "CHARGEType001",
+                              "feeType": "FLAT",
+                              "flatAmount": 1.50,
+                              "currency": "GBP",
+                              "priority": -1
+                            }
+                            """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void omittedPriorityDefaultsToZeroInResponse() throws Exception {
+        when(manageFeeRulesUseCase.create(any())).thenReturn(detailsWithPriority(0));
+
+        mockMvc.perform(post("/admin/fee-rules")
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client"))
+                                .authorities(() -> "SCOPE_fee-rules:write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "BorneByDebtor",
+                              "chargeType": "CHARGEType001",
+                              "feeType": "FLAT",
+                              "flatAmount": 1.50,
+                              "currency": "GBP"
+                            }
+                            """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.priority").value(0));
+    }
 }

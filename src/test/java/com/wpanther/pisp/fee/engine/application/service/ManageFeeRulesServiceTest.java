@@ -226,4 +226,33 @@ class ManageFeeRulesServiceTest {
         assertThat(result.active()).isFalse();
         assertThat(result.destinationCountry()).isEqualTo("IN");
     }
+
+    private FeeRuleDetails detailsWithPriority(int priority) {
+        return new FeeRuleDetails(ruleId, "DOMESTIC", "FPS", "BorneByDebtor", null, null,
+                "CHARGEType001", "FLAT", new BigDecimal("1.50"), null, null, null, null, "GBP",
+                priority, true, 0, Instant.now(), "system", Instant.now(), "system");
+    }
+
+    @Test
+    void toggleStatusPreservesPriority() {
+        when(repository.findById(ruleId)).thenReturn(Optional.of(detailsWithPriority(42)));
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        FeeRuleDetails result = service.toggleStatus(ruleId, false, 0L);
+
+        assertThat(result.active()).isFalse();
+        assertThat(result.priority()).isEqualTo(42);
+    }
+
+    @Test
+    void createPassesPriorityToRepository() {
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        var cmd = new ManageFeeRulesUseCase.CreateCommand(
+                "DOMESTIC", "FPS", "BorneByDebtor", null, null, "CHARGEType001", "FLAT",
+                new BigDecimal("1.50"), null, null, null, null, "GBP", 15);
+
+        FeeRuleDetails result = service.create(cmd);
+
+        assertThat(result.priority()).isEqualTo(15);
+    }
 }
