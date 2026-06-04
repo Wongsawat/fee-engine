@@ -269,4 +269,24 @@ class CalculateFeesServiceTest {
                 PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
                 "GBP", Optional.empty(), Optional.of("12345678901234"));
     }
+
+    @Test
+    void sharedBearerPropagatesDestinationCountryToBothLookups() {
+        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of());
+
+        service.calculate(new CalculateFeesUseCase.Command(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.Shared,
+                new InstructedAmount(new BigDecimal("500.00"), "USD"),
+                Optional.of(new AccountRef("IBAN", "DEBTOR_ID")),
+                Optional.of(new AccountRef("IBAN", "CREDITOR_ID")),
+                Optional.of("IN")));
+
+        verify(feeRuleRepository).findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                "USD", Optional.of("IN"), Optional.of("DEBTOR_ID"));
+        verify(feeRuleRepository).findMatching(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByCreditor,
+                "USD", Optional.of("IN"), Optional.of("CREDITOR_ID"));
+    }
 }

@@ -400,6 +400,11 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
 
     @Test
     void rejectsDuplicateActiveCountryRule() {
+        // Both rows use accountId="ACC1" (not null): the unique index only wraps
+        // destination_country in COALESCE(..., ''), so two rows with otherwise identical
+        // dimensions but null account_identification would NOT collide (PostgreSQL
+        // treats NULL as distinct in unique indexes). Using a non-null accountId forces
+        // the (..., 'IN', 'ACC1') tuple to actually be a duplicate.
         var first = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", "ACC1");
         first.setDestinationCountry("IN");
         jpaRepo.saveAndFlush(first);

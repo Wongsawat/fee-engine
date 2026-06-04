@@ -209,4 +209,21 @@ class ManageFeeRulesServiceTest {
         assertThat(result.minFee()).isEqualByComparingTo("1.00");
         assertThat(result.maxFee()).isEqualByComparingTo("50.00");
     }
+
+    private FeeRuleDetails internationalDetailsWithCountry() {
+        return new FeeRuleDetails(ruleId, "INTERNATIONAL", "SWIFT", "BorneByDebtor", null, "IN",
+                "CHARGEType001", "FLAT", new BigDecimal("5.00"), null, null, null, null, "USD",
+                true, 0, Instant.now(), "system", Instant.now(), "system");
+    }
+
+    @Test
+    void toggleStatusPreservesDestinationCountry() {
+        when(repository.findById(ruleId)).thenReturn(Optional.of(internationalDetailsWithCountry()));
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        FeeRuleDetails result = service.toggleStatus(ruleId, false, 0L);
+
+        assertThat(result.active()).isFalse();
+        assertThat(result.destinationCountry()).isEqualTo("IN");
+    }
 }
