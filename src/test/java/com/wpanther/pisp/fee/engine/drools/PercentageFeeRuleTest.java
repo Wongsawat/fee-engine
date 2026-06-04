@@ -87,6 +87,7 @@ class PercentageFeeRuleTest extends DroolsTestSupport {
         List<Charge> charges = fireRules(request, List.of(rule));
 
         assertThat(charges.get(0).amount().amount()).isEqualByComparingTo("50.00");
+        assertThat(charges.get(0).amount().amount().scale()).isEqualTo(2);
     }
 
     @Test

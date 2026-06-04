@@ -80,6 +80,39 @@ class DryRunFeeCalculationControllerTest {
     }
 
     @Test
+    void dryRunWithCappedPercentageRuleReturnsClampedCharge() throws Exception {
+        when(dryRunUseCase.dryRun(any())).thenReturn(List.of(
+                new Charge(ChargeBearer.BorneByDebtor, "CHARGEType002",
+                        new InstructedAmount(new BigDecimal("5.00"), "GBP"),
+                        new AccountRef("SortCodeAccountNumber", "123"))));
+
+        mockMvc.perform(post("/admin/fee-rules/dry-run")
+                        .with(jwt().authorities(() -> "SCOPE_fee-rules:write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "rule": {
+                                "paymentType": "DOMESTIC",
+                                "scheme": "FPS",
+                                "chargeBearer": "BorneByDebtor",
+                                "chargeType": "CHARGEType002",
+                                "feeType": "PERCENTAGE",
+                                "percentage": 0.01,
+                                "minFee": 1.00,
+                                "maxFee": 5.00,
+                                "currency": "GBP"
+                              },
+                              "instructedAmount": { "amount": "1000.00", "currency": "GBP" },
+                              "debtorAccount": { "schemeName": "SortCodeAccountNumber",
+                                                  "identification": "123" }
+                            }
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.charges[0].type").value("CHARGEType002"))
+                .andExpect(jsonPath("$.charges[0].amount.amount").value("5.00"));
+    }
+
+    @Test
     void rejectsRequestWithoutJwt() throws Exception {
         mockMvc.perform(post("/admin/fee-rules/dry-run")
                         .contentType(MediaType.APPLICATION_JSON)

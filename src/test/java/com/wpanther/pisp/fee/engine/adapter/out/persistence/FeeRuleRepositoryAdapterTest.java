@@ -309,6 +309,15 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
     }
 
     @Test
+    void rejectsNonPositiveMaxFee() {
+        var entity = FeeRuleEntityFixtures.percentageFeeRule("DOMESTIC", "FPS", "BorneByDebtor");
+        entity.setMaxFee(BigDecimal.ZERO);
+
+        assertThatThrownBy(() -> jpaRepo.saveAndFlush(entity))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
     void acceptsValidCappedPercentageRule() {
         var entity = FeeRuleEntityFixtures.percentageFeeRule("DOMESTIC", "FPS", "BorneByDebtor");
         entity.setMinFee(new BigDecimal("1.00"));
