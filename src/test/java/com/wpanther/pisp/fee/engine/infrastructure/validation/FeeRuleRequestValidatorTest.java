@@ -171,4 +171,52 @@ class FeeRuleRequestValidatorTest {
                 new BigDecimal("1.00"), null, null, "GBP");
         assertThat(validator.isValid(request, context)).isFalse();
     }
+
+    @Test
+    void validInternationalRuleWithDestinationCountry() {
+        var request = new CreateFeeRuleRequest("INTERNATIONAL", "SWIFT", "BorneByDebtor",
+                null, "IN", "CHARGEType001", "FLAT", new BigDecimal("1.50"),
+                null, null, null, null, "USD");
+        assertThat(validator.isValid(request, context)).isTrue();
+    }
+
+    @Test
+    void rejectsLowercaseDestinationCountry() {
+        var request = new CreateFeeRuleRequest("INTERNATIONAL", "SWIFT", "BorneByDebtor",
+                null, "in", "CHARGEType001", "FLAT", new BigDecimal("1.50"),
+                null, null, null, null, "USD");
+        assertThat(validator.isValid(request, context)).isFalse();
+    }
+
+    @Test
+    void rejectsThreeLetterDestinationCountry() {
+        var request = new CreateFeeRuleRequest("INTERNATIONAL", "SWIFT", "BorneByDebtor",
+                null, "GBR", "CHARGEType001", "FLAT", new BigDecimal("1.50"),
+                null, null, null, null, "USD");
+        assertThat(validator.isValid(request, context)).isFalse();
+    }
+
+    @Test
+    void rejectsDestinationCountryOnDomesticRule() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, "IN", "CHARGEType001", "FLAT", new BigDecimal("1.50"),
+                null, null, null, null, "GBP");
+        assertThat(validator.isValid(request, context)).isFalse();
+    }
+
+    @Test
+    void acceptsNullDestinationCountryOnDomesticRule() {
+        var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
+                null, null, "CHARGEType001", "FLAT", new BigDecimal("1.50"),
+                null, null, null, null, "GBP");
+        assertThat(validator.isValid(request, context)).isTrue();
+    }
+
+    @Test
+    void acceptsDestinationCountryOnInternationalScheduledRule() {
+        var request = new CreateFeeRuleRequest("INTERNATIONAL_SCHEDULED", "SWIFT", "BorneByDebtor",
+                null, "FR", "CHARGEType001", "FLAT", new BigDecimal("1.50"),
+                null, null, null, null, "EUR");
+        assertThat(validator.isValid(request, context)).isTrue();
+    }
 }

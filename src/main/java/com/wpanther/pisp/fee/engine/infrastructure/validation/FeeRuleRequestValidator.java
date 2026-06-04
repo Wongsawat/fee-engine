@@ -11,6 +11,8 @@ import java.util.Set;
 public class FeeRuleRequestValidator implements ConstraintValidator<ValidFeeRule, FeeRuleRequest> {
 
     private static final Set<String> ALLOWED_CHARGE_BEARERS = Set.of("BorneByDebtor", "BorneByCreditor");
+    private static final Set<String> INTERNATIONAL_PAYMENT_TYPES = Set.of(
+            "INTERNATIONAL", "INTERNATIONAL_SCHEDULED", "INTERNATIONAL_STANDING_ORDER");
 
     @Override
     public boolean isValid(FeeRuleRequest req, ConstraintValidatorContext context) {
@@ -20,6 +22,8 @@ public class FeeRuleRequestValidator implements ConstraintValidator<ValidFeeRule
             return false;
         }
 
+        if (!validateDestinationCountry(req)) return false;
+
         return switch (req.feeType()) {
             case "FLAT" -> validateFlat(req) && capsAbsent(req);
             case "PERCENTAGE" -> validatePercentage(req) && validateCaps(req);
@@ -27,6 +31,12 @@ public class FeeRuleRequestValidator implements ConstraintValidator<ValidFeeRule
             case "FREE" -> validateFree(req) && capsAbsent(req);
             default -> false;
         };
+    }
+
+    private boolean validateDestinationCountry(FeeRuleRequest req) {
+        if (req.destinationCountry() == null) return true;
+        if (!req.destinationCountry().matches("^[A-Z]{2}$")) return false;
+        return INTERNATIONAL_PAYMENT_TYPES.contains(req.paymentType());
     }
 
     private boolean validateFlat(FeeRuleRequest req) {
