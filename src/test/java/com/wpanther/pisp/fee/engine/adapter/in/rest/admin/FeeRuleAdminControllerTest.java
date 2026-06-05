@@ -303,6 +303,31 @@ class FeeRuleAdminControllerTest {
     }
 
     @Test
+    void updateRuleRoundTripsPriority() throws Exception {
+        when(manageFeeRulesUseCase.update(any())).thenReturn(detailsWithPriority(15));
+
+        mockMvc.perform(put("/admin/fee-rules/{id}", RULE_ID)
+                        .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client"))
+                                .authorities(() -> "SCOPE_fee-rules:write"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "paymentType": "DOMESTIC",
+                              "scheme": "FPS",
+                              "chargeBearer": "BorneByDebtor",
+                              "chargeType": "CHARGEType001",
+                              "feeType": "FLAT",
+                              "flatAmount": 1.50,
+                              "currency": "GBP",
+                              "priority": 15,
+                              "version": 0
+                            }
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.priority").value(15));
+    }
+
+    @Test
     void rejectsNegativePriority() throws Exception {
         mockMvc.perform(post("/admin/fee-rules")
                         .with(jwt().jwt(jwt -> jwt.claim("sub", "test-client"))

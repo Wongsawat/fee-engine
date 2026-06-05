@@ -490,6 +490,9 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
 
     @Test
     void countryAndAccountSpecificWinsOverCountryOnlyAndAccountOnly() {
+        // Note: the unique constraint prevents two active same-chargeType rules at the same
+        // cascade level for the same payment, so these rules use different chargeTypes and are
+        // selected independently. Same-chargeType cascade tiebreaking is covered by equalPriorityFallsBackToCascadeLevel.
         // Level 1: country=IN, account=ACC1
         var l1 = FeeRuleEntityFixtures.flatFeeRule("INTERNATIONAL", "SWIFT", "BorneByDebtor", "ACC1");
         l1.setDestinationCountry("IN");
@@ -514,6 +517,9 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
 
     @Test
     void accountOnlyRuleWinsOverAnyAccountRule() {
+        // Note: the unique constraint prevents two active same-chargeType rules at the same
+        // cascade level for the same payment, so these rules use different chargeTypes and are
+        // selected independently. Same-chargeType cascade tiebreaking is covered by equalPriorityFallsBackToCascadeLevel.
         // Level 3: country=any, account=ACC1
         var accountRule = FeeRuleEntityFixtures.flatFeeRule("DOMESTIC", "FPS", "BorneByDebtor", "ACC1");
         jpaRepo.saveAndFlush(accountRule);
