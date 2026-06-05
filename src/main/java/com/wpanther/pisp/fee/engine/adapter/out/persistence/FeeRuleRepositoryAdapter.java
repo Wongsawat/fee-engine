@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.stream.*;
 
 @Component
 public class FeeRuleRepositoryAdapter implements FeeRuleRepository {

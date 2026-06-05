@@ -9,11 +9,12 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 
 class FeeRuleRequestValidatorTest {
 
     private final FeeRuleRequestValidator validator = new FeeRuleRequestValidator();
-    private final ConstraintValidatorContext context = mock(ConstraintValidatorContext.class);
+    private final ConstraintValidatorContext context = mock(ConstraintValidatorContext.class, RETURNS_DEEP_STUBS);
 
     @Test
     void validFlatRule() {

@@ -24,7 +24,12 @@ public class FeeRuleRequestValidator implements ConstraintValidator<ValidFeeRule
 
         if (!validateDestinationCountry(req)) return false;
 
-        if (req.priority() != null && req.priority() < 0) return false;
+        if (req.priority() != null && req.priority() < 0) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("priority must be non-negative")
+                    .addPropertyNode("priority").addConstraintViolation();
+            return false;
+        }
 
         return switch (req.feeType()) {
             case "FLAT" -> validateFlat(req) && capsAbsent(req);
