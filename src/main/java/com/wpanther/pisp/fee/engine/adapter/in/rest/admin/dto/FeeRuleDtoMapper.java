@@ -41,18 +41,23 @@ public class FeeRuleDtoMapper {
         InstructedAmount instructedAmount = amount != null
                 ? new InstructedAmount(amount.amount(), amount.currency())
                 : null;
+        ChargeBearer chargeBearer = ChargeBearer.valueOf(request.rule().chargeBearer());
+        // Drools rules require a non-null account ref to fire (fee must land somewhere).
+        // In dry-run the caller may omit accounts, so we inject a placeholder so the rule
+        // always fires and the caller can see the calculated fee amount.
+        AccountRef placeholder = new AccountRef("N/A", "N/A");
         AccountRef debtor = request.debtorAccount() != null
                 ? new AccountRef(request.debtorAccount().schemeName(), request.debtorAccount().identification())
-                : null;
+                : (chargeBearer == ChargeBearer.BorneByDebtor ? placeholder : null);
         AccountRef creditor = request.creditorAccount() != null
                 ? new AccountRef(request.creditorAccount().schemeName(), request.creditorAccount().identification())
-                : null;
+                : (chargeBearer == ChargeBearer.BorneByCreditor ? placeholder : null);
         // null is intentional — destinationCountry is not part of the Drools session input;
         // matching is done in Java before the session fires (dry-run bypasses matching entirely).
         return new FeeRequest(
                 PaymentType.valueOf(request.rule().paymentType()),
                 PaymentScheme.valueOf(request.rule().scheme()),
-                ChargeBearer.valueOf(request.rule().chargeBearer()),
+                chargeBearer,
                 instructedAmount, debtor, creditor, null);
     }
 
