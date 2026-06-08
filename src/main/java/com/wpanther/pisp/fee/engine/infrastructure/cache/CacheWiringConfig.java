@@ -1,7 +1,9 @@
 package com.wpanther.pisp.fee.engine.infrastructure.cache;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.wpanther.pisp.fee.engine.adapter.out.persistence.FeeRuleRepositoryAdapter;
+import com.wpanther.pisp.fee.engine.adapter.out.persistence.jpa.FeeRuleJpaRepository;
 import com.wpanther.pisp.fee.engine.application.port.out.FeeRuleRepository;
 import com.wpanther.pisp.fee.engine.domain.model.FeeRule;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,6 +16,12 @@ import java.util.List;
 
 @Configuration
 public class CacheWiringConfig {
+
+    @Bean
+    public FeeRuleRepositoryAdapter feeRuleRepositoryAdapter(
+            FeeRuleJpaRepository jpaRepo, ObjectMapper objectMapper) {
+        return new FeeRuleRepositoryAdapter(jpaRepo, objectMapper);
+    }
 
     @Bean
     @ConditionalOnBean(name = "feeRuleMatchingCache")
