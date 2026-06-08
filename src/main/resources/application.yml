@@ -25,3 +25,7 @@ management:
     web:
       exposure:
         include: health,info
+
+fee:
+  cache:
+    enabled: true

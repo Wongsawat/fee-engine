@@ -11,13 +11,11 @@ import com.wpanther.pisp.fee.engine.domain.exception.FeeRuleNotFoundException;
 import com.wpanther.pisp.fee.engine.domain.model.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.*;
 
-@Component
 public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
 
     private final FeeRuleJpaRepository jpaRepo;
