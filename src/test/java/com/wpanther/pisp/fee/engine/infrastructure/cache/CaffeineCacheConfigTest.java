@@ -37,7 +37,7 @@ class CaffeineCacheConfigTest {
         assertThat(cache.asMap()).hasSize(1);
 
         // Call the actual config method — exercises the same code path as the @EventListener
-        new CaffeineCacheConfig().invalidateOnStartup(cache);
+        new CaffeineCacheConfig(cache).invalidateOnStartup();
 
         assertThat(cache.asMap()).isEmpty();
     }
