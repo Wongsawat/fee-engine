@@ -2,7 +2,6 @@ package com.wpanther.pisp.fee.engine.infrastructure.cache;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.wpanther.pisp.fee.engine.adapter.out.persistence.FeeRuleRepositoryAdapter;
-import com.wpanther.pisp.fee.engine.application.port.out.FeeRuleDetails;
 import com.wpanther.pisp.fee.engine.application.port.out.FeeRuleRepository;
 import com.wpanther.pisp.fee.engine.domain.model.FeeRule;
 import org.springframework.beans.factory.annotation.Qualifier;
