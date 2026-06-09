@@ -34,7 +34,10 @@ public class FeeSessionRunner {
             charges.forEach(c -> result.putIfAbsent(key(c.chargeBearer(), c.chargeType()), c));
 
             tierContributions.stream()
-                    .collect(Collectors.groupingBy(c -> key(c.chargeBearer(), c.chargeType())))
+                    .collect(Collectors.groupingBy(
+                            (TierContribution c) -> key(c.chargeBearer(), c.chargeType()),
+                            LinkedHashMap::new,
+                            Collectors.toList()))
                     .forEach((k, list) -> {
                         TierContribution first = list.get(0);
                         BigDecimal total = list.stream()

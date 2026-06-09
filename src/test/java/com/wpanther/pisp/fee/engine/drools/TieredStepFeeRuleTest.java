@@ -164,4 +164,22 @@ class TieredStepFeeRuleTest extends DroolsTestSupport {
         assertThat(charges).anyMatch(c -> c.chargeBearer() == ChargeBearer.BorneByCreditor
                 && c.amount().amount().compareTo(new BigDecimal("1200.00")) == 0);
     }
+
+    @Test
+    void step_amountBelowAllTierMinimums_returnsEmpty() {
+        List<Tier> tiers = List.of(
+                new Tier(new BigDecimal("100"), new BigDecimal("1000"),
+                        TierRateType.FIXED, new BigDecimal("5.00"), null));
+
+        FeeRequest request = new FeeRequest(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("50.00"), "GBP"),
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null, null);
+        FeeRule rule = new FeeRule("MIN_STEP", ChargeBearer.BorneByDebtor, FeeType.TIERED_STEP,
+                null, null, null, null, tiers, "GBP", null, 0);
+
+        List<Charge> charges = fireRules(request, List.of(rule));
+
+        assertThat(charges).isEmpty();
+    }
 }

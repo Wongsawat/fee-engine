@@ -27,7 +27,7 @@ public class FeeRuleDtoMapper {
         List<Tier> tiers = request.tiers() != null
                 ? request.tiers().stream().map(t -> new Tier(
                         t.min(), t.max(),
-                        com.wpanther.pisp.fee.engine.domain.model.TierRateType.valueOf(t.rateType()),
+                        TierRateType.valueOf(t.rateType()),
                         t.amount(), t.percentage())).toList()
                 : List.of();
         return new FeeRule(

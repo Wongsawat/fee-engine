@@ -212,17 +212,21 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
                 if (t.getAmount().isEmpty() || t.getAmount().orElseThrow().compareTo(BigDecimal.ZERO) <= 0)
                     throw new IllegalStateException(
                         "Fee rule '" + chargeType + "': HYBRID tier requires positive amount");
-                if (t.getPercentage().isEmpty())
+                if (t.getPercentage().isEmpty()
+                        || t.getPercentage().orElseThrow().compareTo(BigDecimal.ZERO) <= 0
+                        || t.getPercentage().orElseThrow().compareTo(BigDecimal.ONE) > 0)
                     throw new IllegalStateException(
-                        "Fee rule '" + chargeType + "': HYBRID tier requires percentage");
+                        "Fee rule '" + chargeType + "': HYBRID tier requires percentage > 0 and <= 1");
             }
             case GREATER_OF -> {
                 if (t.getAmount().isEmpty() || t.getAmount().orElseThrow().compareTo(BigDecimal.ZERO) <= 0)
                     throw new IllegalStateException(
                         "Fee rule '" + chargeType + "': GREATER_OF tier requires positive floor amount");
-                if (t.getPercentage().isEmpty())
+                if (t.getPercentage().isEmpty()
+                        || t.getPercentage().orElseThrow().compareTo(BigDecimal.ZERO) <= 0
+                        || t.getPercentage().orElseThrow().compareTo(BigDecimal.ONE) > 0)
                     throw new IllegalStateException(
-                        "Fee rule '" + chargeType + "': GREATER_OF tier requires percentage");
+                        "Fee rule '" + chargeType + "': GREATER_OF tier requires percentage > 0 and <= 1");
             }
         }
     }
