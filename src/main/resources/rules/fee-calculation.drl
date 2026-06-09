@@ -74,34 +74,68 @@ then
         $r.getCreditorAccountOrNull()));
 end
 
-rule "Apply tiered fee - BorneByDebtor"
+rule "Apply tiered slab fee - BorneByDebtor"
     salience 10
     no-loop
 when
     $r    : FeeRequest(getDebtorAccountOrNull() != null)
-    $rule : FeeRule(feeType == FeeType.TIERED, chargeBearer == ChargeBearer.BorneByDebtor)
+    $rule : FeeRule(feeType == FeeType.TIERED_SLAB, chargeBearer == ChargeBearer.BorneByDebtor)
     $tier : Tier(getMin().compareTo($r.getInstructedAmount().amount()) <= 0,
                  getMax().compareTo($r.getInstructedAmount().amount()) > 0)
             from $rule.getTiers()
 then
+    BigDecimal fee = TierFormulaEvaluator.compute($tier,
+        $r.getInstructedAmount().amount(), $rule.getCurrency());
     charges.add(new Charge(ChargeBearer.BorneByDebtor, $rule.getChargeType(),
-        new InstructedAmount($tier.getAmount().orElseThrow(), $rule.getCurrency()),
-        $r.getDebtorAccountOrNull()));
+        new InstructedAmount(fee, $rule.getCurrency()), $r.getDebtorAccountOrNull()));
 end
 
-rule "Apply tiered fee - BorneByCreditor"
+rule "Apply tiered slab fee - BorneByCreditor"
     salience 10
     no-loop
 when
     $r    : FeeRequest(getCreditorAccountOrNull() != null)
-    $rule : FeeRule(feeType == FeeType.TIERED, chargeBearer == ChargeBearer.BorneByCreditor)
+    $rule : FeeRule(feeType == FeeType.TIERED_SLAB, chargeBearer == ChargeBearer.BorneByCreditor)
     $tier : Tier(getMin().compareTo($r.getInstructedAmount().amount()) <= 0,
                  getMax().compareTo($r.getInstructedAmount().amount()) > 0)
             from $rule.getTiers()
 then
+    BigDecimal fee = TierFormulaEvaluator.compute($tier,
+        $r.getInstructedAmount().amount(), $rule.getCurrency());
     charges.add(new Charge(ChargeBearer.BorneByCreditor, $rule.getChargeType(),
-        new InstructedAmount($tier.getAmount().orElseThrow(), $rule.getCurrency()),
-        $r.getCreditorAccountOrNull()));
+        new InstructedAmount(fee, $rule.getCurrency()), $r.getCreditorAccountOrNull()));
+end
+
+rule "Apply tiered step fee - BorneByDebtor"
+    salience 10
+    no-loop
+when
+    $r    : FeeRequest(getDebtorAccountOrNull() != null)
+    $rule : FeeRule(feeType == FeeType.TIERED_STEP, chargeBearer == ChargeBearer.BorneByDebtor)
+    $tier : Tier(getMin().compareTo($r.getInstructedAmount().amount()) < 0)
+            from $rule.getTiers()
+then
+    BigDecimal bracket = TierFormulaEvaluator.bracketAmount($tier,
+        $r.getInstructedAmount().amount());
+    BigDecimal fee = TierFormulaEvaluator.compute($tier, bracket, $rule.getCurrency());
+    tierContributions.add(new TierContribution(ChargeBearer.BorneByDebtor,
+        $rule.getChargeType(), fee, $rule.getCurrency(), $r.getDebtorAccountOrNull()));
+end
+
+rule "Apply tiered step fee - BorneByCreditor"
+    salience 10
+    no-loop
+when
+    $r    : FeeRequest(getCreditorAccountOrNull() != null)
+    $rule : FeeRule(feeType == FeeType.TIERED_STEP, chargeBearer == ChargeBearer.BorneByCreditor)
+    $tier : Tier(getMin().compareTo($r.getInstructedAmount().amount()) < 0)
+            from $rule.getTiers()
+then
+    BigDecimal bracket = TierFormulaEvaluator.bracketAmount($tier,
+        $r.getInstructedAmount().amount());
+    BigDecimal fee = TierFormulaEvaluator.compute($tier, bracket, $rule.getCurrency());
+    tierContributions.add(new TierContribution(ChargeBearer.BorneByCreditor,
+        $rule.getChargeType(), fee, $rule.getCurrency(), $r.getCreditorAccountOrNull()));
 end
 
 rule "Apply free fee - BorneByDebtor"

@@ -161,8 +161,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         entity.setScheme("FPS");
         entity.setChargeBearer("BorneByDebtor");
         entity.setChargeType("CHARGEType003");
-        entity.setFeeType("TIERED");
-        entity.setTiers(MAPPER.readTree("[{\"min\":1000,\"max\":100,\"amount\":0.50}]"));
+        entity.setFeeType("TIERED_SLAB");
+        entity.setTiers(MAPPER.readTree("[{\"min\":1000,\"max\":100,\"rateType\":\"FIXED\",\"amount\":0.50}]"));
         entity.setCurrency("GBP");
         entity.setActive(true);
         entity.setCreatedAt(Instant.now());
@@ -183,8 +183,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         entity.setScheme("FPS");
         entity.setChargeBearer("BorneByDebtor");
         entity.setChargeType("CHARGEType003");
-        entity.setFeeType("TIERED");
-        entity.setTiers(MAPPER.readTree("[{\"min\":0,\"max\":1000}]")); // missing "amount"
+        entity.setFeeType("TIERED_SLAB");
+        entity.setTiers(MAPPER.readTree("[{\"min\":0,\"max\":1000,\"rateType\":\"FIXED\"}]")); // missing "amount"
         entity.setCurrency("GBP");
         entity.setActive(true);
         entity.setCreatedAt(Instant.now());
@@ -205,8 +205,8 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         entity.setScheme("FPS");
         entity.setChargeBearer("BorneByDebtor");
         entity.setChargeType("CHARGEType003");
-        entity.setFeeType("TIERED");
-        entity.setTiers(MAPPER.readTree("[{\"min\":0,\"max\":1000,\"amount\":-1}]"));
+        entity.setFeeType("TIERED_SLAB");
+        entity.setTiers(MAPPER.readTree("[{\"min\":0,\"max\":1000,\"rateType\":\"FIXED\",\"amount\":-1}]"));
         entity.setCurrency("GBP");
         entity.setActive(true);
         entity.setCreatedAt(Instant.now());

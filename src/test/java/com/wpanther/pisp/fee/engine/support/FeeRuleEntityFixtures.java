@@ -51,10 +51,30 @@ public class FeeRuleEntityFixtures {
         e.setChargeBearer(chargeBearer);
         e.setAccountIdentification(null);
         e.setChargeType("CHARGEType003");
-        e.setFeeType("TIERED");
+        e.setFeeType("TIERED_SLAB");
         e.setTiers(MAPPER.readTree(
-            "[{\"min\":0,\"max\":1000,\"amount\":0.50}," +
-            " {\"min\":1000,\"max\":999999999,\"amount\":2.00}]"));
+            "[{\"min\":0,\"max\":1000,\"rateType\":\"FIXED\",\"amount\":0.50}," +
+            " {\"min\":1000,\"max\":999999999,\"rateType\":\"FIXED\",\"amount\":2.00}]"));
+        e.setCurrency("GBP");
+        e.setActive(true);
+        e.setCreatedAt(Instant.now());
+        e.setUpdatedAt(Instant.now());
+        return e;
+    }
+
+    public static FeeRuleEntity tieredStepPercentageFeeRule(String paymentType, String scheme,
+                                                             String chargeBearer) throws Exception {
+        var e = new FeeRuleEntity();
+        e.setPaymentType(paymentType);
+        e.setScheme(scheme);
+        e.setChargeBearer(chargeBearer);
+        e.setAccountIdentification(null);
+        e.setChargeType("CHARGEType005");
+        e.setFeeType("TIERED_STEP");
+        e.setTiers(MAPPER.readTree(
+            "[{\"min\":0,\"max\":10000,\"rateType\":\"PERCENTAGE\",\"percentage\":0.03}," +
+            " {\"min\":10000,\"max\":50000,\"rateType\":\"PERCENTAGE\",\"percentage\":0.02}," +
+            " {\"min\":50000,\"max\":999999999,\"rateType\":\"PERCENTAGE\",\"percentage\":0.01}]"));
         e.setCurrency("GBP");
         e.setActive(true);
         e.setCreatedAt(Instant.now());
