@@ -32,11 +32,11 @@ public class FeeRuleRequestValidator implements ConstraintValidator<ValidFeeRule
         }
 
         return switch (req.feeType()) {
-            case "FLAT" -> validateFlat(req) && capsAbsent(req);
-            case "PERCENTAGE" -> validatePercentage(req) && validateCaps(req);
-            case "TIERED" -> validateTiered(req) && capsAbsent(req);
-            case "FREE" -> validateFree(req) && capsAbsent(req);
-            default -> false;
+            case "FLAT"                       -> validateFlat(req) && capsAbsent(req);
+            case "PERCENTAGE"                 -> validatePercentage(req) && validateCaps(req);
+            case "TIERED_SLAB", "TIERED_STEP" -> validateTiered(req) && capsAbsent(req);
+            case "FREE"                       -> validateFree(req) && capsAbsent(req);
+            default                           -> false;
         };
     }
 
@@ -59,10 +59,32 @@ public class FeeRuleRequestValidator implements ConstraintValidator<ValidFeeRule
     private boolean validateTiered(FeeRuleRequest req) {
         if (req.tiers() == null || req.tiers().isEmpty()) return false;
         for (TierDto t : req.tiers()) {
+            if (t.min() == null || t.max() == null) return false;
             if (t.min().compareTo(t.max()) >= 0) return false;
-            if (t.amount().compareTo(BigDecimal.ZERO) <= 0) return false;
+            if (t.rateType() == null) return false;
+            if (!validateTierFormula(t)) return false;
         }
         return true;
+    }
+
+    private boolean validateTierFormula(TierDto t) {
+        return switch (t.rateType()) {
+            case "FIXED"      -> t.amount() != null && t.amount().compareTo(BigDecimal.ZERO) > 0
+                                 && t.percentage() == null;
+            case "PERCENTAGE" -> t.percentage() != null
+                                 && t.percentage().compareTo(BigDecimal.ZERO) > 0
+                                 && t.percentage().compareTo(BigDecimal.ONE) <= 0
+                                 && t.amount() == null;
+            case "HYBRID"     -> t.amount() != null && t.amount().compareTo(BigDecimal.ZERO) > 0
+                                 && t.percentage() != null
+                                 && t.percentage().compareTo(BigDecimal.ZERO) > 0
+                                 && t.percentage().compareTo(BigDecimal.ONE) <= 0;
+            case "GREATER_OF" -> t.amount() != null && t.amount().compareTo(BigDecimal.ZERO) > 0
+                                 && t.percentage() != null
+                                 && t.percentage().compareTo(BigDecimal.ZERO) > 0
+                                 && t.percentage().compareTo(BigDecimal.ONE) <= 0;
+            default           -> false;
+        };
     }
 
     private boolean validateFree(FeeRuleRequest req) {

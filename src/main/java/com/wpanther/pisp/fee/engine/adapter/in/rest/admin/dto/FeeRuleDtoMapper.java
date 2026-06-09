@@ -25,7 +25,10 @@ public class FeeRuleDtoMapper {
 
     public FeeRule toFeeRule(CreateFeeRuleRequest request) {
         List<Tier> tiers = request.tiers() != null
-                ? request.tiers().stream().map(t -> new Tier(t.min(), t.max(), t.amount())).toList()
+                ? request.tiers().stream().map(t -> new Tier(
+                        t.min(), t.max(),
+                        com.wpanther.pisp.fee.engine.domain.model.TierRateType.valueOf(t.rateType()),
+                        t.amount(), t.percentage())).toList()
                 : List.of();
         return new FeeRule(
                 request.chargeType(), ChargeBearer.valueOf(request.chargeBearer()),
@@ -100,14 +103,15 @@ public class FeeRuleDtoMapper {
     private List<FeeRuleDetails.TierInfo> toTierInfoList(List<TierDto> tiers) {
         if (tiers == null) return null;
         return tiers.stream()
-                .map(t -> new FeeRuleDetails.TierInfo(t.min(), t.max(), t.amount()))
+                .map(t -> new FeeRuleDetails.TierInfo(t.min(), t.max(), t.rateType(),
+                        t.amount(), t.percentage()))
                 .toList();
     }
 
     private List<TierDto> toTierDtoList(List<FeeRuleDetails.TierInfo> tiers) {
         if (tiers == null) return null;
         return tiers.stream()
-                .map(t -> new TierDto(t.min(), t.max(), t.amount()))
+                .map(t -> new TierDto(t.min(), t.max(), t.rateType(), t.amount(), t.percentage()))
                 .toList();
     }
 }

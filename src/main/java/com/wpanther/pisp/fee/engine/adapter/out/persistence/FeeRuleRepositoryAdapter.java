@@ -122,7 +122,9 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
                 tiers = raw.stream().map(m -> new Tier(
                         toBigDecimal(m.get("min")),
                         toBigDecimal(m.get("max")),
-                        toBigDecimal(m.get("amount"))
+                        TierRateType.valueOf((String) m.get("rateType")),
+                        toBigDecimal(m.get("amount")),
+                        toBigDecimal(m.get("percentage"))
                 )).toList();
             } catch (Exception ex) {
                 throw new IllegalStateException(
@@ -147,7 +149,9 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
             tiers = raw.stream().map(m -> new FeeRuleDetails.TierInfo(
                     toBigDecimal(m.get("min")),
                     toBigDecimal(m.get("max")),
-                    toBigDecimal(m.get("amount"))
+                    (String) m.get("rateType"),
+                    toBigDecimal(m.get("amount")),
+                    toBigDecimal(m.get("percentage"))
             )).toList();
         }
         return new FeeRuleDetails(
@@ -163,9 +167,15 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
 
     private JsonNode toJsonNode(List<FeeRuleDetails.TierInfo> tiers) {
         if (tiers == null) return null;
-        var list = tiers.stream().map(t ->
-                Map.of("min", (Object) t.min(), "max", t.max(), "amount", t.amount())
-        ).toList();
+        var list = tiers.stream().map(t -> {
+            var map = new java.util.LinkedHashMap<String, Object>();
+            map.put("min", t.min());
+            map.put("max", t.max());
+            map.put("rateType", t.rateType());
+            if (t.amount() != null) map.put("amount", t.amount());
+            if (t.percentage() != null) map.put("percentage", t.percentage());
+            return map;
+        }).toList();
         return objectMapper.valueToTree(list);
     }
 
@@ -173,17 +183,52 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
         for (Tier t : tiers) {
             if (t.getMin().compareTo(t.getMax()) >= 0)
                 throw new IllegalStateException(
-                    "Fee rule '" + chargeType + "': tier min (" + t.getMin() +
-                    ") must be less than max (" + t.getMax() + ")");
-            if (t.getAmount().isEmpty() || t.getAmount().orElseThrow().compareTo(BigDecimal.ZERO) <= 0)
-                throw new IllegalStateException(
-                    "Fee rule '" + chargeType + "': tier amount must be positive, got " +
-                    t.getAmount());
+                    "Fee rule '" + chargeType + "': tier min must be less than max");
+            validateTierFormula(t, chargeType);
         }
     }
 
-    private BigDecimal toBigDecimal(Object value) {
-        if (value == null) throw new IllegalArgumentException("tier field value must not be null");
+    private void validateTierFormula(Tier t, String chargeType) {
+        switch (t.getRateType()) {
+            case FIXED -> {
+                if (t.getAmount().isEmpty() || t.getAmount().orElseThrow().compareTo(BigDecimal.ZERO) <= 0)
+                    throw new IllegalStateException(
+                        "Fee rule '" + chargeType + "': FIXED tier requires positive amount");
+                if (t.getPercentage().isPresent())
+                    throw new IllegalStateException(
+                        "Fee rule '" + chargeType + "': FIXED tier must not have percentage");
+            }
+            case PERCENTAGE -> {
+                if (t.getPercentage().isEmpty()
+                        || t.getPercentage().orElseThrow().compareTo(BigDecimal.ZERO) <= 0
+                        || t.getPercentage().orElseThrow().compareTo(BigDecimal.ONE) > 0)
+                    throw new IllegalStateException(
+                        "Fee rule '" + chargeType + "': PERCENTAGE tier requires percentage > 0 and <= 1");
+                if (t.getAmount().isPresent())
+                    throw new IllegalStateException(
+                        "Fee rule '" + chargeType + "': PERCENTAGE tier must not have amount");
+            }
+            case HYBRID -> {
+                if (t.getAmount().isEmpty() || t.getAmount().orElseThrow().compareTo(BigDecimal.ZERO) <= 0)
+                    throw new IllegalStateException(
+                        "Fee rule '" + chargeType + "': HYBRID tier requires positive amount");
+                if (t.getPercentage().isEmpty())
+                    throw new IllegalStateException(
+                        "Fee rule '" + chargeType + "': HYBRID tier requires percentage");
+            }
+            case GREATER_OF -> {
+                if (t.getAmount().isEmpty() || t.getAmount().orElseThrow().compareTo(BigDecimal.ZERO) <= 0)
+                    throw new IllegalStateException(
+                        "Fee rule '" + chargeType + "': GREATER_OF tier requires positive floor amount");
+                if (t.getPercentage().isEmpty())
+                    throw new IllegalStateException(
+                        "Fee rule '" + chargeType + "': GREATER_OF tier requires percentage");
+            }
+        }
+    }
+
+    private static BigDecimal toBigDecimal(Object value) {
+        if (value == null) return null;
         if (value instanceof Number n) return new BigDecimal(n.toString());
         return new BigDecimal(value.toString());
     }

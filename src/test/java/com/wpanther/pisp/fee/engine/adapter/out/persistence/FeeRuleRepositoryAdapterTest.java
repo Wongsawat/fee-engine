@@ -666,4 +666,78 @@ class FeeRuleRepositoryAdapterTest extends PostgresTestSupport {
         assertThat(rules).anyMatch(r -> r.getChargeType().equals("OUR_FEE"));
         assertThat(rules).anyMatch(r -> r.getChargeType().equals("AGENT_FEE"));
     }
+
+    @Test
+    void savesAndLoadsPercentageTieredSlabRule() throws Exception {
+        var e = new FeeRuleEntity();
+        e.setPaymentType("DOMESTIC");
+        e.setScheme("FPS");
+        e.setChargeBearer("BorneByDebtor");
+        e.setChargeType("PCT_SLAB");
+        e.setFeeType("TIERED_SLAB");
+        e.setTiers(new com.fasterxml.jackson.databind.ObjectMapper().readTree(
+            "[{\"min\":0,\"max\":10000,\"rateType\":\"PERCENTAGE\",\"percentage\":0.03}," +
+            " {\"min\":10000,\"max\":999999999,\"rateType\":\"PERCENTAGE\",\"percentage\":0.01}]"));
+        e.setCurrency("GBP");
+        e.setActive(true);
+        e.setCreatedAt(java.time.Instant.now());
+        e.setUpdatedAt(java.time.Instant.now());
+        jpaRepo.saveAndFlush(e);
+
+        Optional<FeeRuleDetails> loaded = adapter.findById(e.getId());
+
+        assertThat(loaded).isPresent();
+        assertThat(loaded.get().tiers()).hasSize(2);
+        assertThat(loaded.get().tiers().get(0).rateType()).isEqualTo("PERCENTAGE");
+        assertThat(loaded.get().tiers().get(0).percentage()).isEqualByComparingTo("0.03");
+        assertThat(loaded.get().tiers().get(0).amount()).isNull();
+    }
+
+    @Test
+    void savesAndLoadsHybridTieredStepRule() throws Exception {
+        var e = new FeeRuleEntity();
+        e.setPaymentType("DOMESTIC");
+        e.setScheme("FPS");
+        e.setChargeBearer("BorneByDebtor");
+        e.setChargeType("HYBRID_STEP");
+        e.setFeeType("TIERED_STEP");
+        e.setTiers(new com.fasterxml.jackson.databind.ObjectMapper().readTree(
+            "[{\"min\":0,\"max\":10000,\"rateType\":\"HYBRID\",\"amount\":2.00,\"percentage\":0.01}]"));
+        e.setCurrency("GBP");
+        e.setActive(true);
+        e.setCreatedAt(java.time.Instant.now());
+        e.setUpdatedAt(java.time.Instant.now());
+        jpaRepo.saveAndFlush(e);
+
+        Optional<FeeRuleDetails> loaded = adapter.findById(e.getId());
+
+        assertThat(loaded).isPresent();
+        FeeRuleDetails.TierInfo tier = loaded.get().tiers().get(0);
+        assertThat(tier.rateType()).isEqualTo("HYBRID");
+        assertThat(tier.amount()).isEqualByComparingTo("2.00");
+        assertThat(tier.percentage()).isEqualByComparingTo("0.01");
+    }
+
+    @Test
+    void toBigDecimalIsNullSafe_percentageAbsentForFixedTier() throws Exception {
+        var e = new FeeRuleEntity();
+        e.setPaymentType("DOMESTIC");
+        e.setScheme("FPS");
+        e.setChargeBearer("BorneByDebtor");
+        e.setChargeType("FIXED_SLAB_NULL_SAFE");
+        e.setFeeType("TIERED_SLAB");
+        e.setTiers(new com.fasterxml.jackson.databind.ObjectMapper().readTree(
+            "[{\"min\":0,\"max\":1000,\"rateType\":\"FIXED\",\"amount\":5.00}]"));
+        e.setCurrency("GBP");
+        e.setActive(true);
+        e.setCreatedAt(java.time.Instant.now());
+        e.setUpdatedAt(java.time.Instant.now());
+        jpaRepo.saveAndFlush(e);
+
+        Optional<FeeRuleDetails> loaded = adapter.findById(e.getId());
+
+        assertThat(loaded).isPresent();
+        assertThat(loaded.get().tiers().get(0).percentage()).isNull();
+        assertThat(loaded.get().tiers().get(0).amount()).isEqualByComparingTo("5.00");
+    }
 }

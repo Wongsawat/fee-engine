@@ -60,24 +60,24 @@ class FeeRuleRequestValidatorTest {
 
     @Test
     void validTieredRule() {
-        var tiers = List.of(new TierDto(new BigDecimal("0"), new BigDecimal("1000"), new BigDecimal("0.50")));
+        var tiers = List.of(new TierDto(new BigDecimal("0"), new BigDecimal("1000"), "FIXED", new BigDecimal("0.50"), null));
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType003", "TIERED", null, null, null, null, tiers, "GBP", null);
+                null, null, "CHARGEType003", "TIERED_SLAB", null, null, null, null, tiers, "GBP", null);
         assertThat(validator.isValid(request, context)).isTrue();
     }
 
     @Test
     void tieredRuleWithoutTiersIsInvalid() {
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType003", "TIERED", null, null, null, null, null, "GBP", null);
+                null, null, "CHARGEType003", "TIERED_SLAB", null, null, null, null, null, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
     @Test
     void tierWithMinGreaterOrEqualToMaxIsInvalid() {
-        var tiers = List.of(new TierDto(new BigDecimal("1000"), new BigDecimal("100"), new BigDecimal("0.50")));
+        var tiers = List.of(new TierDto(new BigDecimal("1000"), new BigDecimal("100"), "FIXED", new BigDecimal("0.50"), null));
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType003", "TIERED", null, null, null, null, tiers, "GBP", null);
+                null, null, "CHARGEType003", "TIERED_SLAB", null, null, null, null, tiers, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }
 
@@ -158,9 +158,9 @@ class FeeRuleRequestValidatorTest {
 
     @Test
     void tieredRuleWithCapsIsInvalid() {
-        var tiers = List.of(new TierDto(new BigDecimal("0"), new BigDecimal("1000"), new BigDecimal("0.50")));
+        var tiers = List.of(new TierDto(new BigDecimal("0"), new BigDecimal("1000"), "FIXED", new BigDecimal("0.50"), null));
         var request = new CreateFeeRuleRequest("DOMESTIC", "FPS", "BorneByDebtor",
-                null, null, "CHARGEType003", "TIERED", null, null,
+                null, null, "CHARGEType003", "TIERED_SLAB", null, null,
                 null, new BigDecimal("5.00"), tiers, "GBP", null);
         assertThat(validator.isValid(request, context)).isFalse();
     }

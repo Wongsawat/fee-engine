@@ -28,5 +28,6 @@ public record FeeRuleDetails(
     Instant updatedAt,
     String updatedBy
 ) {
-    public record TierInfo(BigDecimal min, BigDecimal max, BigDecimal amount) {}
+    public record TierInfo(BigDecimal min, BigDecimal max, String rateType,
+                           BigDecimal amount, BigDecimal percentage) {}
 }
