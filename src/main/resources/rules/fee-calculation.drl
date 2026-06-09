@@ -82,7 +82,7 @@ when
             from $rule.getTiers()
 then
     charges.add(new Charge(ChargeBearer.BorneByDebtor, $rule.getChargeType(),
-        new InstructedAmount($tier.getAmount(), $rule.getCurrency()),
+        new InstructedAmount($tier.getAmount().orElseThrow(), $rule.getCurrency()),
         $r.getDebtorAccountOrNull()));
 end
 
@@ -97,7 +97,7 @@ when
             from $rule.getTiers()
 then
     charges.add(new Charge(ChargeBearer.BorneByCreditor, $rule.getChargeType(),
-        new InstructedAmount($tier.getAmount(), $rule.getCurrency()),
+        new InstructedAmount($tier.getAmount().orElseThrow(), $rule.getCurrency()),
         $r.getCreditorAccountOrNull()));
 end
 

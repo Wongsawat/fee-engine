@@ -175,7 +175,7 @@ public class FeeRuleRepositoryAdapter implements FeeRuleRepository {
                 throw new IllegalStateException(
                     "Fee rule '" + chargeType + "': tier min (" + t.getMin() +
                     ") must be less than max (" + t.getMax() + ")");
-            if (t.getAmount().compareTo(BigDecimal.ZERO) <= 0)
+            if (t.getAmount().isEmpty() || t.getAmount().orElseThrow().compareTo(BigDecimal.ZERO) <= 0)
                 throw new IllegalStateException(
                     "Fee rule '" + chargeType + "': tier amount must be positive, got " +
                     t.getAmount());
