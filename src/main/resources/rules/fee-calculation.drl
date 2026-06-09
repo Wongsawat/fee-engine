@@ -8,10 +8,13 @@ import com.wpanther.pisp.fee.engine.domain.model.Charge;
 import com.wpanther.pisp.fee.engine.domain.model.InstructedAmount;
 import com.wpanther.pisp.fee.engine.domain.model.AccountRef;
 import com.wpanther.pisp.fee.engine.domain.model.Tier;
+import com.wpanther.pisp.fee.engine.domain.model.TierFormulaEvaluator;
+import com.wpanther.pisp.fee.engine.application.service.TierContribution;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 global java.util.List charges;
+global java.util.List tierContributions;
 
 rule "Apply flat fee - BorneByDebtor"
     salience 30
