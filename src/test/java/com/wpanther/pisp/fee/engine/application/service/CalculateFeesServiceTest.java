@@ -27,7 +27,7 @@ class CalculateFeesServiceTest {
     void setup() {
         feeRuleRepository = mock(FeeRuleRepository.class);
         KieContainer kieContainer = KieServices.Factory.get().getKieClasspathContainer();
-        service = new CalculateFeesService(feeRuleRepository, kieContainer);
+        service = new CalculateFeesService(feeRuleRepository, new FeeSessionRunner(kieContainer));
     }
 
     @Test
@@ -288,5 +288,30 @@ class CalculateFeesServiceTest {
         verify(feeRuleRepository).findMatching(
                 PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByCreditor,
                 "USD", Optional.of("IN"), Optional.of("CREDITOR_ID"));
+    }
+
+    @Test
+    void returnsTieredStepChargeAccumulatedAcrossTiers() {
+        List<Tier> tiers = List.of(
+                new Tier(BigDecimal.ZERO, new BigDecimal("10000"),
+                        TierRateType.PERCENTAGE, null, new BigDecimal("0.03")),
+                new Tier(new BigDecimal("10000"), new BigDecimal("50000"),
+                        TierRateType.PERCENTAGE, null, new BigDecimal("0.02")),
+                new Tier(new BigDecimal("50000"), new BigDecimal("999999999"),
+                        TierRateType.PERCENTAGE, null, new BigDecimal("0.01")));
+        FeeRule rule = new FeeRule("STEP_FEE", ChargeBearer.BorneByDebtor, FeeType.TIERED_STEP,
+                null, null, null, null, tiers, "GBP", null, 0);
+        when(feeRuleRepository.findMatching(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(rule));
+
+        List<Charge> result = service.calculate(new CalculateFeesUseCase.Command(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("60000.00"), "GBP"),
+                Optional.of(new AccountRef("SortCodeAccountNumber", "DEBTOR_ID")),
+                Optional.empty(), Optional.empty()));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).chargeType()).isEqualTo("STEP_FEE");
+        assertThat(result.get(0).amount().amount()).isEqualByComparingTo("1200.00");
     }
 }

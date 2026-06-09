@@ -15,12 +15,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DryRunFeeCalculationServiceTest {
 
     private DryRunFeeCalculationService service;
-    private KieContainer kieContainer;
 
     @BeforeEach
     void setup() {
-        kieContainer = KieServices.Factory.get().getKieClasspathContainer();
-        service = new DryRunFeeCalculationService(kieContainer);
+        KieContainer kieContainer = KieServices.Factory.get().getKieClasspathContainer();
+        service = new DryRunFeeCalculationService(new FeeSessionRunner(kieContainer));
     }
 
     @Test

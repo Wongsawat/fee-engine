@@ -3,9 +3,8 @@ package com.wpanther.pisp.fee.engine.application.service;
 import com.wpanther.pisp.fee.engine.application.port.in.CalculateFeesUseCase;
 import com.wpanther.pisp.fee.engine.application.port.out.FeeRuleRepository;
 import com.wpanther.pisp.fee.engine.domain.model.*;
-import org.kie.api.runtime.KieContainer;
-import org.kie.api.runtime.KieSession;
 import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -14,12 +13,12 @@ import java.util.Optional;
 public class CalculateFeesService implements CalculateFeesUseCase {
 
     private final FeeRuleRepository feeRuleRepository;
-    private final KieContainer kieContainer;
+    private final FeeSessionRunner feeSessionRunner;
 
     public CalculateFeesService(FeeRuleRepository feeRuleRepository,
-                                KieContainer kieContainer) {
+                                FeeSessionRunner feeSessionRunner) {
         this.feeRuleRepository = feeRuleRepository;
-        this.kieContainer = kieContainer;
+        this.feeSessionRunner = feeSessionRunner;
     }
 
     @Override
@@ -67,19 +66,6 @@ public class CalculateFeesService implements CalculateFeesUseCase {
                 command.debtorAccount().orElse(null),
                 command.creditorAccount().orElse(null),
                 command.destinationCountry().orElse(null));
-
-        KieSession session = kieContainer.newKieSession("FeeSession");
-        try {
-            List<Charge> charges = new ArrayList<>();
-            session.setGlobal("charges", charges);
-            session.insert(feeRequest);
-            rules.forEach(session::insert);
-            session.fireAllRules();
-            var seen = new java.util.LinkedHashMap<String, Charge>();
-            charges.forEach(c -> seen.putIfAbsent(c.chargeBearer().name() + ':' + c.chargeType(), c));
-            return List.copyOf(seen.values());
-        } finally {
-            session.dispose();
-        }
+        return feeSessionRunner.run(feeRequest, rules);
     }
 }
