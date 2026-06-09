@@ -182,4 +182,86 @@ class TieredStepFeeRuleTest extends DroolsTestSupport {
 
         assertThat(charges).isEmpty();
     }
+
+    @Test
+    void step_jpyCurrency_scalesToZeroDecimalPlaces() {
+        // JPY has 0 default fraction digits — FeeSessionRunner must scale the accumulated total accordingly
+        List<Tier> tiers = List.of(
+                new Tier(BigDecimal.ZERO, new BigDecimal("10000"),
+                        TierRateType.PERCENTAGE, null, new BigDecimal("0.03")),
+                new Tier(new BigDecimal("10000"), new BigDecimal("999999999"),
+                        TierRateType.PERCENTAGE, null, new BigDecimal("0.01")));
+
+        // 15000 JPY: tier1 bracket=10000 → 10000*3%=300; tier2 bracket=5000 → 5000*1%=50 → total=350
+        FeeRequest request = new FeeRequest(
+                PaymentType.INTERNATIONAL, PaymentScheme.SWIFT, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("15000"), "JPY"),
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null, null);
+        FeeRule rule = new FeeRule("JPY_STEP", ChargeBearer.BorneByDebtor, FeeType.TIERED_STEP,
+                null, null, null, null, tiers, "JPY", null, 0);
+
+        List<Charge> charges = fireRules(request, List.of(rule));
+
+        assertThat(charges).hasSize(1);
+        assertThat(charges.get(0).amount().currency()).isEqualTo("JPY");
+        assertThat(charges.get(0).amount().amount()).isEqualByComparingTo("350");
+        assertThat(charges.get(0).amount().amount().scale()).isEqualTo(0);
+    }
+
+    @Test
+    void step_mixedFormulaTiers_fixedThenPercentage() {
+        // Tier 1: FIXED $5.00 for amounts entering [0, 1000) bracket
+        // Tier 2: PERCENTAGE 2% on the bracket within [1000, 999999999)
+        // Amount $15,000: enters both tiers
+        //   tier1 bracket = min(15000, 1000) - 0 = 1000; compute(FIXED, 1000) = 5.00
+        //   tier2 bracket = min(15000, 999999999) - 1000 = 14000; compute(PCT, 14000) = 14000*0.02 = 280.00
+        //   total = 285.00
+        List<Tier> tiers = List.of(
+                new Tier(BigDecimal.ZERO, new BigDecimal("1000"),
+                        TierRateType.FIXED, new BigDecimal("5.00"), null),
+                new Tier(new BigDecimal("1000"), new BigDecimal("999999999"),
+                        TierRateType.PERCENTAGE, null, new BigDecimal("0.02")));
+
+        FeeRequest request = new FeeRequest(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("15000.00"), "GBP"),
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null, null);
+        FeeRule rule = new FeeRule("MIXED_STEP", ChargeBearer.BorneByDebtor, FeeType.TIERED_STEP,
+                null, null, null, null, tiers, "GBP", null, 0);
+
+        List<Charge> charges = fireRules(request, List.of(rule));
+
+        assertThat(charges).hasSize(1);
+        assertThat(charges.get(0).chargeType()).isEqualTo("MIXED_STEP");
+        assertThat(charges.get(0).amount().amount()).isEqualByComparingTo("285.00");
+    }
+
+    @Test
+    void step_twoRulesWithSameChargeType_contributionsAccumulatedIntoSingleCharge() {
+        // Two TIERED_STEP rules with the same chargeType fire against the same request.
+        // All their TierContributions share the same grouping key (chargeBearer:chargeType)
+        // and must be summed into exactly one output charge — not two charges, not first-wins.
+        List<Tier> tiersAt1Pct = List.of(
+                new Tier(BigDecimal.ZERO, new BigDecimal("999999999"),
+                        TierRateType.PERCENTAGE, null, new BigDecimal("0.01")));
+        List<Tier> tiersAt2Pct = List.of(
+                new Tier(BigDecimal.ZERO, new BigDecimal("999999999"),
+                        TierRateType.PERCENTAGE, null, new BigDecimal("0.02")));
+
+        // 1000 * 1% = 10.00 from rule1; 1000 * 2% = 20.00 from rule2 → total 30.00
+        FeeRequest request = new FeeRequest(
+                PaymentType.DOMESTIC, PaymentScheme.FPS, ChargeBearer.BorneByDebtor,
+                new InstructedAmount(new BigDecimal("1000.00"), "GBP"),
+                new AccountRef("SortCodeAccountNumber", "12345678901234"), null, null);
+        FeeRule rule1 = new FeeRule("MULTI_STEP", ChargeBearer.BorneByDebtor, FeeType.TIERED_STEP,
+                null, null, null, null, tiersAt1Pct, "GBP", null, 0);
+        FeeRule rule2 = new FeeRule("MULTI_STEP", ChargeBearer.BorneByDebtor, FeeType.TIERED_STEP,
+                null, null, null, null, tiersAt2Pct, "GBP", null, 0);
+
+        List<Charge> charges = fireRules(request, List.of(rule1, rule2));
+
+        assertThat(charges).hasSize(1);
+        assertThat(charges.get(0).chargeType()).isEqualTo("MULTI_STEP");
+        assertThat(charges.get(0).amount().amount()).isEqualByComparingTo("30.00");
+    }
 }
