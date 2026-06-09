@@ -16,6 +16,7 @@ sequenceDiagram
     participant Svc as CalculateFeesService
     participant Repo as FeeRuleRepositoryAdapter
     participant DB as PostgreSQL
+    participant Runner as FeeSessionRunner
     participant Drools as Drools KieSession
 
     Client->>Ctrl: POST /fee-calculations<br/>{paymentType, scheme, chargeBearer,<br/>instructedAmount, debtorAccount?, creditorAccount?}
@@ -47,14 +48,19 @@ sequenceDiagram
     alt No rules matched
         Svc-->>Client: HTTP 200 {charges: []}
     else Rules found
-        Svc->>Drools: newKieSession("FeeSession")
-        Svc->>Drools: setGlobal("charges", [])
-        Svc->>Drools: insert(FeeRequest)
-        Svc->>Drools: insert each FeeRule
-        Svc->>Drools: fireAllRules()
-        Drools-->>Svc: List<Charge> (raw, may contain duplicates)
-        Svc->>Drools: dispose()
-        Svc->>Svc: Deduplicate by chargeBearer:chargeType<br/>(LinkedHashMap, first-seen = highest salience wins)
+        Svc->>Svc: Build FeeRequest from Command
+        Svc->>Runner: run(FeeRequest, rules)
+        Runner->>Drools: newKieSession("FeeSession")
+        Runner->>Drools: setGlobal("charges", [])
+        Runner->>Drools: setGlobal("tierContributions", [])
+        Runner->>Drools: insert(FeeRequest)
+        Runner->>Drools: insert each FeeRule
+        Runner->>Drools: fireAllRules()
+        Drools-->>Runner: charges + tierContributions populated
+        Runner->>Drools: dispose()
+        Runner->>Runner: Deduplicate charges by chargeBearer:chargeType<br/>(LinkedHashMap, first-seen wins)
+        Runner->>Runner: Group tierContributions by chargeBearer:chargeType<br/>Sum amounts per group → merge via putIfAbsent
+        Runner-->>Svc: List<Charge>
         Svc-->>Ctrl: List<Charge>
         Ctrl-->>Client: HTTP 200<br/>{charges: [{chargeBearer, chargeType, amount, chargingParty?}]}
     end
@@ -69,9 +75,10 @@ sequenceDiagram
 - **Steps 5–15 — Shared bearer:** The service makes two independent `findMatching` calls — one for `BorneByDebtor` with the debtor account identification, one for `BorneByCreditor` with the creditor account identification. Each call hits the DB and applies the account override filter independently. The resulting rule lists are concatenated so a single Drools session handles charges for both bearers at once.
 - **Steps 16–20 — BorneByDebtor / BorneByCreditor:** Service resolves the single relevant account from the command (`debtorAccount` for `BorneByDebtor`, `creditorAccount` for `BorneByCreditor`) and makes a single `findMatching` call.
 - **Step 21 — No rules matched:** If `findMatching` returns an empty list after the account override filter, the service returns empty charges without opening a Drools session.
-- **Steps 22–28 — Drools session:** Service creates a fresh stateful `KieSession` named `"FeeSession"`. It sets a mutable `charges` list as a Drools global, then inserts the `FeeRequest` fact and every `FeeRule` domain object. `fireAllRules()` evaluates all rules whose conditions match the inserted facts.
-- **Step 29 — Deduplication:** The raw `charges` list may contain multiple entries for the same `chargeBearer:chargeType` key when several fee types all matched. A `LinkedHashMap` keyed on that composite keeps only the first-seen entry. Because Drools fires rules in descending salience order (FLAT 30 → PERCENTAGE 20 → TIERED 10 → FREE 5), the first entry is always the highest-priority result — lower-salience duplicates are silently dropped via `putIfAbsent`.
-- **Steps 30–31 — Response:** The deduplicated charge list is returned to the controller, which maps each `Charge` domain object to a `ChargeDto` (converting amounts to plain strings, bearer to name string, optional `chargingParty` account) and responds with HTTP 200.
+- **Steps 22–35 — FeeSessionRunner:** `CalculateFeesService` delegates to `FeeSessionRunner.run(feeRequest, rules)`. The runner creates a fresh `KieSession("FeeSession")`, registers two mutable globals — `charges` (for FLAT, PERCENTAGE, TIERED_SLAB, FREE) and `tierContributions` (for TIERED_STEP bracket accumulation) — inserts the `FeeRequest` fact and all `FeeRule` objects, and calls `fireAllRules()`. The session is disposed in a `finally` block.
+- **Deduplication — direct charges:** After `fireAllRules()`, the raw `charges` list is passed through a `LinkedHashMap<String, Charge>` keyed on `chargeBearer.name() + ':' + chargeType`. Because Drools fires higher-salience rules first (FLAT 30 → PERCENTAGE 20 → TIERED_SLAB/TIERED_STEP 10 → FREE 5), `putIfAbsent` retains the highest-priority result for each key.
+- **Accumulation — TIERED_STEP contributions:** Each TIERED_STEP Drools rule fires once per entered bracket (`tier.min < amount`), computing the formula on that bracket's portion and inserting a `TierContribution` into the global list. After `fireAllRules()`, the runner groups `TierContribution` objects by `chargeBearer:chargeType` using a `LinkedHashMap` (deterministic order), sums amounts per group, and merges the resulting `Charge` via `putIfAbsent` into the deduplicated map.
+- **Steps 36–37 — Response:** The final `List<Charge>` is returned to the controller, which maps each domain `Charge` to a `ChargeDto` and responds with HTTP 200.
 
 ---
 
@@ -141,32 +148,49 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[fireSession: insert FeeRequest + FeeRule objects] --> B[fireAllRules]
+    A[FeeSessionRunner.run: insert FeeRequest + FeeRule objects] --> B[fireAllRules]
 
     B --> C{FeeType?}
 
-    C -->|FLAT — salience 30| D[Charge = flatAmount<br/>chargeBearer from rule]
-    C -->|PERCENTAGE — salience 20| E[Charge = instructedAmount × percentage<br/>rounded HALF_UP to currency fraction digits]
-    C -->|TIERED — salience 10| F[Find tier where min ≤ amount < max<br/>Charge = tier.amount]
-    C -->|FREE — salience 5| G[Charge = 0.00<br/>no monetary value stored]
+    C -->|FLAT — salience 30| D[Charge = flatAmount]
+    C -->|PERCENTAGE — salience 20| E[Charge = amount × percentage<br/>+ applyBounds for min/max caps<br/>rounded HALF_UP]
+    C -->|TIERED_SLAB — salience 10| F{tier where min ≤ amount < max?}
+    F -->|match found| G[Charge = TierFormulaEvaluator.compute<br/>tier formula applied to full amount]
+    F -->|no match| Z[No charge added]
+    C -->|TIERED_STEP — salience 10| H[For each tier where min < amount strict<br/>bracket = min txnAmt tier.max − tier.min<br/>TierFormulaEvaluator.compute bracket<br/>→ TierContribution]
+    C -->|FREE — salience 5| I[Charge = 0.00]
 
-    D --> H[Add to global charges list]
-    E --> H
-    F --> H
-    G --> H
+    D --> J[Add to global charges list]
+    E --> J
+    G --> J
+    I --> J
+    H --> K[Add to global tierContributions list]
 
-    H --> I[Deduplicate by chargeBearer:chargeType<br/>First-seen wins — higher salience takes priority]
-    I --> J[Return List of Charge]
+    J --> L[Deduplicate charges by chargeBearer:chargeType<br/>putIfAbsent — higher salience wins]
+    K --> M[Group tierContributions by chargeBearer:chargeType<br/>Sum amounts per group → one Charge per key]
+    M --> L
+    L --> N[Return List of Charge]
+```
+
+```mermaid
+flowchart TD
+    A[TierFormulaEvaluator.compute tier, txnAmount, currency] --> B{rateType?}
+    B -->|FIXED| C[return tier.amount<br/>ignores txnAmount]
+    B -->|PERCENTAGE| D[return txnAmount × percentage<br/>scaled to currency decimals]
+    B -->|HYBRID| E[return tier.amount + txnAmount × percentage<br/>scaled to currency decimals]
+    B -->|GREATER_OF| F[return max tier.amount, txnAmount × percentage<br/>scaled to currency decimals]
 ```
 
 ### Step Details
 
-- **fireAllRules:** Drools evaluates all inserted `FeeRule` facts against the inserted `FeeRequest`. Rules are defined in `rules/fee-calculation.drl` on the classpath and are loaded once at startup by `KieSessionConfig`. Each rule matches on `FeeType` and fires in salience order — higher salience fires first.
-- **FLAT (salience 30):** The highest-priority rule type. Charge amount equals the rule's `flatAmount` field directly. This rule fires before any other type, so a FLAT rule always wins over PERCENTAGE, TIERED, or FREE for the same `chargeType`.
-- **PERCENTAGE (salience 20):** Charge amount is computed as `instructedAmount.amount × percentage`. The result is rounded `HALF_UP` to the number of fraction digits dictated by `java.util.Currency.getInstance(currency).getDefaultFractionDigits()` (e.g. 2 for GBP, 0 for JPY).
-- **TIERED (salience 10):** The rule iterates the `tiers` list to find the first range where `tier.min ≤ instructedAmount.amount < tier.max`. The charge amount is that tier's fixed `amount`. If no tier matches (amount outside all defined ranges), no charge is added. Tier validity (min < max, amount > 0) is enforced at load time by `FeeRuleRepositoryAdapter.validateTiers()`.
-- **FREE (salience 5):** The lowest-priority type. Produces a zero-amount `Charge` record. Used to explicitly represent "no fee" for a given charge type and bearer, distinguishing it from "no rule found".
-- **Deduplication:** After `fireAllRules()`, the raw `charges` list is passed through a `LinkedHashMap<String, Charge>` keyed on `chargeBearer.name() + ':' + chargeType`. Because Drools fires higher-salience rules first, `putIfAbsent` guarantees the map retains the highest-priority result for each combination. The final `List.copyOf(seen.values())` is returned.
+- **FeeSessionRunner:** Owns the session lifecycle for all callers (`CalculateFeesService`, `DryRunFeeCalculationService`). Registers both globals (`charges` and `tierContributions`) before firing. Disposes the session in a `finally` block. Handles both deduplication of direct charges and accumulation of STEP contributions.
+- **FLAT (salience 30):** Charge amount equals the rule's `flatAmount` directly. Fires before any other type — a FLAT rule always wins over PERCENTAGE, tiered, or FREE for the same `chargeType`.
+- **PERCENTAGE (salience 20):** Charge is `instructedAmount.amount × percentage`, then `FeeRule.applyBounds()` clamps to optional `minFee`/`maxFee` caps, then rounded `HALF_UP` to `Currency.getDefaultFractionDigits()` (e.g. 2 for GBP, 0 for JPY).
+- **TIERED_SLAB (salience 10):** The DRL matches the single tier where `tier.min ≤ amount < max` (lower-inclusive, upper-exclusive). Calls `TierFormulaEvaluator.compute(tier, fullAmount, currency)` — the formula type (FIXED/PERCENTAGE/HYBRID/GREATER_OF) is on the tier itself. If no tier covers the amount (e.g. a gap in ranges), no charge is emitted.
+- **TIERED_STEP (salience 10):** The DRL fires for **every** tier whose `min < amount` (strictly less-than). For each entered tier, the bracket is `min(txnAmount, tier.max) − tier.min`; `TierFormulaEvaluator.compute(tier, bracket, currency)` is called and a `TierContribution` is added to the `tierContributions` global. After all rules fire, `FeeSessionRunner` groups contributions by `chargeBearer:chargeType` and sums them into one `Charge` per key.
+- **TierFormulaEvaluator:** Stateless domain helper. `FIXED` ignores the amount and returns `tier.amount` — useful for a per-bracket handling fee. `PERCENTAGE`, `HYBRID`, and `GREATER_OF` all scale the result to the currency's default fraction digits using `HALF_UP`.
+- **FREE (salience 5):** Lowest priority. Emits a zero-amount `Charge` — explicitly signals "no fee" for this charge type, distinct from "no rule found".
+- **Deduplication:** Direct charges use `LinkedHashMap.putIfAbsent` keyed on `chargeBearer:chargeType`. Higher-salience rules fire first, so the first entry wins. TIERED_STEP contributions are grouped and summed first, then merged into the same map via `putIfAbsent`.
 
 ---
 
@@ -223,7 +247,7 @@ sequenceDiagram
 - **Step 2 — JWT validation:** `adminChain` uses Spring Security's OAuth2 resource server to decode and validate the JWT — checking signature, expiry, issuer, and audience. If absent or invalid, the custom `authenticationEntryPoint` writes a `ProblemDetail` response with status 401 and `Content-Type: application/problem+json`.
 - **Step 3 — Scope check:** If the JWT is valid but the token claims do not include `SCOPE_fee-rules:write`, the custom `accessDeniedHandler` returns 403 with the same `application/problem+json` format.
 - **Step 4 — Request deserialisation:** The request body is mapped to `CreateFeeRuleRequest`. `@Valid` triggers standard Bean Validation — required fields, size constraints, and format checks — before the controller method body runs.
-- **Step 5 — @ValidFeeRule cross-field validation:** `FeeRuleRequestValidator` enforces fee-type-specific invariants: `FLAT` requires `flatAmount > 0` and no percentage/tiers; `PERCENTAGE` requires `0 < percentage ≤ 1`; `TIERED` requires at least one tier with `min < max` and `amount > 0`; `FREE` requires all amount fields to be null/absent. `chargeBearer` must be `BorneByDebtor` or `BorneByCreditor` — `Shared` and `FollowingServiceLevel` are never stored. Failures produce 400 "Request validation failed".
+- **Step 5 — @ValidFeeRule cross-field validation:** `FeeRuleRequestValidator` enforces fee-type-specific invariants: `FLAT` requires `flatAmount > 0` and no percentage/tiers; `PERCENTAGE` requires `0 < percentage ≤ 1` and may carry optional `minFee`/`maxFee` (each `> 0`, `minFee ≤ maxFee`); caps are rejected on non-PERCENTAGE types; `TIERED_SLAB` and `TIERED_STEP` each require at least one tier with `min < max`, `amount > 0` (for FIXED/HYBRID/GREATER_OF), and valid `percentage` (for PERCENTAGE/HYBRID/GREATER_OF); `FREE` requires all amount fields to be null/absent. `chargeBearer` must be `BorneByDebtor` or `BorneByCreditor` — `Shared` and `FollowingServiceLevel` are never stored. Failures produce 400 "Request validation failed".
 - **Step 6 — create(CreateCommand):** Controller maps the DTO to a `CreateCommand` record (domain-layer types) and calls `ManageFeeRulesService.create()`.
 - **Step 7 — Build FeeRuleDetails:** Service constructs a `FeeRuleDetails` record with `id=null` (signals new entity to the repository) and `active=true`. New rules are always created active.
 - **Step 8 — save():** Service delegates to `FeeRuleRepositoryAdapter.save()`.
@@ -378,6 +402,7 @@ sequenceDiagram
     participant Ctrl as DryRunFeeCalculationController
     participant Mapper as FeeRuleDtoMapper
     participant Svc as DryRunFeeCalculationService
+    participant Runner as FeeSessionRunner
     participant Drools as Drools KieSession
 
     Admin->>Sec: POST /admin/fee-rules/dry-run<br/>Authorization: Bearer <token><br/>{rule: {feeType, flatAmount?, …}, instructedAmount?, chargeBearer, …}
@@ -400,13 +425,17 @@ sequenceDiagram
     Mapper-->>Ctrl: FeeRequest
 
     Ctrl->>Svc: dryRun(DryRunCommand {rule, feeRequest})
-    Svc->>Drools: newKieSession("FeeSession")
-    Svc->>Drools: setGlobal("charges", [])
-    Svc->>Drools: insert(FeeRequest)
-    Svc->>Drools: insert(FeeRule)
-    Svc->>Drools: fireAllRules()
-    Drools-->>Svc: List<Charge>
-    Svc->>Drools: dispose()
+    Svc->>Runner: run(FeeRequest, singletonList(FeeRule))
+    Runner->>Drools: newKieSession("FeeSession")
+    Runner->>Drools: setGlobal("charges", [])
+    Runner->>Drools: setGlobal("tierContributions", [])
+    Runner->>Drools: insert(FeeRequest)
+    Runner->>Drools: insert(FeeRule)
+    Runner->>Drools: fireAllRules()
+    Drools-->>Runner: charges + tierContributions populated
+    Runner->>Drools: dispose()
+    Runner->>Runner: Deduplicate + accumulate STEP contributions
+    Runner-->>Svc: List<Charge>
     Svc-->>Ctrl: List<Charge>
     Ctrl->>Mapper: toChargeDtos(charges)
     Ctrl-->>Admin: HTTP 200 {charges: [{chargeBearer, chargeType, amount}]}
@@ -423,9 +452,8 @@ sequenceDiagram
 - **Step 5 — toFeeRule():** `FeeRuleDtoMapper` converts the embedded rule DTO into a domain `FeeRule` object. This is a pure in-memory mapping — no DB interaction. The resulting `FeeRule` is transient and will never be persisted.
 - **Step 6 — toFeeRequest():** Mapper builds a `FeeRequest` fact from the payment attributes in the `DryRunRequest`. This is the same `FeeRequest` type used by the regular calculation flow.
 - **Step 7 — dryRun(DryRunCommand):** Controller wraps the `FeeRule` and `FeeRequest` into a `DryRunCommand` record and delegates to `DryRunFeeCalculationService`.
-- **Steps 8–11 — Drools session:** Service opens a fresh `KieSession("FeeSession")`, sets the `charges` global, inserts the `FeeRequest` and the single transient `FeeRule` as facts, and calls `fireAllRules()`. This is the same Drools mechanics as the regular calculation path.
-- **Step 12 — Session dispose:** Session is always disposed in a `finally` block regardless of whether rules fired or an exception occurred.
-- **Step 13 — No deduplication:** Unlike the regular flow, only a single rule is inserted, so duplicate `chargeType` entries cannot arise. The raw `charges` list is returned as-is.
+- **Steps 8–13 — FeeSessionRunner:** `DryRunFeeCalculationService` delegates to `FeeSessionRunner.run(feeRequest, singletonList(rule))` — the same runner used by the live calculation path. The runner creates a `KieSession("FeeSession")`, registers both globals (`charges` and `tierContributions`), inserts the single transient `FeeRule` and the `FeeRequest`, and calls `fireAllRules()`. The session is disposed in a `finally` block. This ensures TIERED_STEP dry-runs accumulate tier contributions correctly, identical to live calculations.
+- **Step 14 — Single-rule deduplication:** Because only one rule is inserted, duplicate `chargeBearer:chargeType` entries cannot arise from the direct charges path. TIERED_STEP contributions are still grouped and summed by `FeeSessionRunner` in case the single rule has multiple tiers that contribute to the same key.
 - **Step 14 — 200 OK:** `toChargeDtos()` maps `Charge` domain objects to response DTOs. The response shows exactly what charges this rule would produce for the given payment — with zero side effects on the database.
 
 ---
@@ -673,7 +701,7 @@ flowchart TD
 - **Security check — 401:** `authenticationEntryPoint` fires when the request carries no `Authorization` header, a malformed token, an expired token, or a token with an unrecognised signature. Response body is `application/problem+json` with `status: 401` and `detail: "Unauthorized"`.
 - **Security check — 403:** `accessDeniedHandler` fires when the JWT is valid but the token's scopes do not include the required authority for the HTTP method. Response body is `application/problem+json` with `status: 403` and `detail: "Access Denied"`.
 - **@Valid — 400:** Standard Bean Validation triggered by `@Valid` on controller parameters. Catches missing required fields, null values, and format violations. Handled by `GlobalExceptionHandler.handleValidation()`.
-- **@ValidFeeRule — 400:** Custom constraint `FeeRuleRequestValidator` enforces cross-field fee-type rules. `FLAT` must have `flatAmount > 0`; `PERCENTAGE` must have `0 < percentage ≤ 1`; `TIERED` must have non-empty tiers with `min < max` and `amount > 0`; `FREE` must have no amount fields. Also enforces `chargeBearer ∈ {BorneByDebtor, BorneByCreditor}`. Produces the same 400 response as `@Valid`.
+- **@ValidFeeRule — 400:** Custom constraint `FeeRuleRequestValidator` enforces cross-field fee-type rules: `FLAT` must have `flatAmount > 0`; `PERCENTAGE` must have `0 < percentage ≤ 1` with optional `minFee`/`maxFee` (caps rejected on all other types); `TIERED_SLAB` and `TIERED_STEP` each require non-empty tiers with `min < max`, and per-tier formula fields valid for their `rateType` (FIXED needs `amount > 0`; PERCENTAGE needs `0 < percentage ≤ 1`; HYBRID/GREATER_OF need both); `FREE` must have no amount fields. Also enforces `chargeBearer ∈ {BorneByDebtor, BorneByCreditor}`. Produces the same 400 response as `@Valid`.
 - **404 — FeeRuleNotFoundException:** Thrown by `ManageFeeRulesService` in `findById`, `update`, and `toggleStatus` when `findById` returns empty. `GlobalExceptionHandler.handleNotFound()` returns `status: 404` with the rule UUID in the detail string.
 - **409 — Concurrent update:** `ObjectOptimisticLockingFailureException` thrown by the service layer when the request's `version` field does not match the current DB version. Handled by `GlobalExceptionHandler.handleOptimisticLock()`. The caller must re-fetch the rule and retry with the current version.
 - **409 — Duplicate active rule:** `DataIntegrityViolationException` from PostgreSQL `uniq_active_fee_rules` constraint violation. `GlobalExceptionHandler.handleDataIntegrity()` checks the exception message for the constraint name and returns a specific 409 detail. Any other `DataIntegrityViolationException` falls through to a generic 400.
@@ -691,8 +719,11 @@ flowchart TD
 | `FeeRule` | Domain object passed to Drools — immutable, not persisted directly |
 | `FeeRuleDetails` | Application-layer record bridging persistence ↔ use cases |
 | `FeeRequest` | Drools fact representing the inbound payment request |
-| `Charge` | Drools output — one per matching rule after deduplication |
-| `KieSession` | Drools stateful session; always disposed after use |
+| `Charge` | Drools output — one per `chargeBearer:chargeType` key after deduplication/accumulation |
+| `TierContribution` | Application-layer record for one TIERED_STEP bracket result before accumulation |
+| `TierRateType` | Per-tier formula: `FIXED`, `PERCENTAGE`, `HYBRID`, `GREATER_OF` |
+| `FeeSessionRunner` | Spring component that owns the Drools session lifecycle for all callers |
+| `KieSession` | Drools stateful session; always disposed in a `finally` block after use |
 | `DryRun` | Rule evaluated against a payment without being saved to DB |
 
 ### Security Scopes
@@ -708,14 +739,19 @@ flowchart TD
 | Salience | FeeType | Charge calculation |
 |----------|---------|-------------------|
 | 30 | `FLAT` | Fixed `flatAmount` |
-| 20 | `PERCENTAGE` | `instructedAmount × percentage`, rounded `HALF_UP` |
-| 10 | `TIERED` | `tier.amount` for first matching range (`min ≤ amount < max`) |
+| 20 | `PERCENTAGE` | `instructedAmount × percentage` + optional `applyBounds` caps, rounded `HALF_UP` |
+| 10 | `TIERED_SLAB` | `TierFormulaEvaluator.compute(matchingTier, fullAmount, currency)` — one tier where `min ≤ amount < max` |
+| 10 | `TIERED_STEP` | Per-entered-tier `TierFormulaEvaluator.compute(tier, bracket, currency)` → `TierContribution`; `FeeSessionRunner` groups + sums per `chargeBearer:chargeType` |
 | 5 | `FREE` | Zero-amount charge |
 
 ### Key Constraints
 
 | Constraint | Behaviour |
 |-----------|-----------|
-| `uniq_active_fee_rules` | At most one active rule per `(payment_type, scheme, charge_bearer, account_identification)` — HTTP 409 on violation |
+| `uniq_active_fee_rules` | At most one active rule per `(payment_type, scheme, charge_bearer, currency, COALESCE(destination_country,''), COALESCE(account_identification,''), charge_type)` — HTTP 409 on violation |
 | `chk_free_no_amount` | `FREE` fee type must have null `flat_amount`, `percentage`, and `tiers` — enforced via `NOT VALID` (V2) + `VALIDATE` (V3) |
 | `chk_charge_bearer` | Only `BorneByDebtor` / `BorneByCreditor` stored; `Shared` and `FollowingServiceLevel` handled in application layer |
+| `chk_tiered_slab_requires_tiers` | `TIERED_SLAB` fee type must have a non-null `tiers` JSON value |
+| `chk_tiered_step_requires_tiers` | `TIERED_STEP` fee type must have a non-null `tiers` JSON value |
+| `chk_caps_only_percentage` | `min_fee`/`max_fee` columns only permitted on `PERCENTAGE` rules |
+| `chk_destination_country_international_only` | `destination_country` only permitted on international payment types (`INTERNATIONAL_*`) |
