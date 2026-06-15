@@ -2,7 +2,7 @@
 
 Fee calculation engine for the `pisp` payment platform. Determines charges for payment transactions based on payment type, scheme, charge bearer, currency, and account — using a Drools rules engine with salience-based priority (FLAT > PERCENTAGE > TIERED_SLAB / TIERED_STEP > FREE). Supports all seven OB payment types, account-specific rule overrides, `Shared` charge bearer decomposition, and tiered pricing in both slab (volume) and step (progressive bracket) modes with four per-tier formula types (FIXED, PERCENTAGE, HYBRID, GREATER_OF).
 
-Part of the `pisp` platform alongside the [domestic-payments](../domestic-payments), [file-payments](../file-payments), and [saga-orchestrator](../saga-orchestrator) services.
+Part of the `pisp` platform alongside the [domestic-payments](https://github.com/Wongsawat/domestic-payments), [file-payments](https://github.com/Wongsawat/file-payments), and [saga-orchestrator](https://github.com/Wongsawat/saga-orchestrator) services.
 
 For detailed sequence and flow diagrams covering fee calculation, admin CRUD, dry-run, security chains, and error handling, see [docs/fee-engine-flow-diagrams.md](docs/fee-engine-flow-diagrams.md).
 
@@ -273,7 +273,7 @@ All errors return RFC 7807 `ProblemDetail` (`application/problem+json`).
 
 ## Related
 
-- [domestic-payments](../domestic-payments) — calls fee-engine for domestic payment fee calculation
-- [file-payments](../file-payments) — calls fee-engine for file payment fee calculation
-- [saga-orchestrator](../saga-orchestrator) — orchestrates payment workflows that may trigger fee lookups
-- [event-notification](../event-notification) — event notification service for SET delivery
+- [domestic-payments](https://github.com/Wongsawat/domestic-payments) — calls fee-engine for domestic payment fee calculation
+- [file-payments](https://github.com/Wongsawat/file-payments) — calls fee-engine for file payment fee calculation
+- [saga-orchestrator](https://github.com/Wongsawat/saga-orchestrator) — orchestrates payment workflows that may trigger fee lookups
+- [event-notification](https://github.com/Wongsawat/event-notification) — event notification service for SET delivery
